@@ -1,0 +1,78 @@
+{
+  "n_clips_total": 794,
+  "n_clips_sampled": 80,
+  "participants": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8",
+    "P9",
+    "P10",
+    "P11",
+    "P12",
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P17",
+    "P19",
+    "P20",
+    "P21",
+    "P23",
+    "P24"
+  ],
+  "n_participants": 22,
+  "absent_ids_in_P1_P24": [
+    "P18",
+    "P22"
+  ],
+  "clips_by_condition": {
+    "FP": 217,
+    "NP": 219,
+    "SITDOWN": 65,
+    "SP": 228,
+    "STAND": 65
+  },
+  "video_fps_values": {
+    "28.92": 1,
+    "29.0": 4,
+    "29.17": 6,
+    "29.25": 1,
+    "29.33": 4,
+    "29.5": 2,
+    "29.58": 7,
+    "30.0": 7,
+    "60.0": 48
+  },
+  "video_resolutions": {
+    "1920x1088": 80
+  },
+  "video_duration_s": {
+    "min": 2.6,
+    "median": 4.9,
+    "max": 43.966667,
+    "n": 80
+  },
+  "insole_over_video_duration_ratio": {
+    "min": 0.9967617235676817,
+    "median": 1.0033492487291245,
+    "max": 1.0177137948969204,
+    "n": 80
+  },
+  "pressure_value_min": 17.0,
+  "pressure_value_max": 3437.0,
+  "unloaded_baseline_p5": {
+    "min": 20.0,
+    "median": 22.0,
+    "max": 59.0,
+    "n": 80
+  },
+  "max_abs_sumP_minus_channel_sum": 0.0,
+  "nan_count": 0,
+  "rows_checked": 42569,
+  "missing_modalities": {}
+}

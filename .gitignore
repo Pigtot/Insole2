@@ -10,15 +10,18 @@ envs/
 external/*/
 !external/README.md
 
-# --- experiment outputs (keep the READMEs and configs that describe them)
-experiments/**/outputs/
-experiments/**/*.mp4
+# --- experiment outputs
+# Figures and metrics ARE tracked: they are the evidence the write-ups cite, and
+# they are small. Heavy regenerable artifacts are not.
 experiments/**/*.stl
 experiments/**/*.step
 experiments/**/*.ply
+experiments/**/*.obj
+experiments/**/*.mp4
 experiments/**/*.pt
 experiments/**/*.ckpt
-!experiments/**/README.md
+experiments/**/*.npy
+experiments/**/*.npz
 
 # --- python
 __pycache__/
