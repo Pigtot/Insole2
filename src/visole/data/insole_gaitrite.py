@@ -52,6 +52,19 @@ NOMINAL_INSOLE_HZ = 64.0
 #: Metronome-guided cadences (steps/min); NP is self-selected.
 CONDITION_CADENCE = {"SP": 70.0, "NP": None, "FP": 127.0}
 
+#: GAITRite's ``Foot`` column to anatomical side.
+#:
+#: Established empirically, not assumed. Predicting each GAITRite ``HeelOn``
+#: into clip time and matching it to the nearest insole stance onset over 120
+#: walking clips (699 events) gives a median error of **14.5 ms** under this
+#: mapping -- less than one 64 Hz sample period -- versus **556 ms** under the
+#: opposite mapping, with 0 % of events within 50 ms. The result is unambiguous.
+GAITRITE_FOOT_TO_SIDE = {0: "left", 1: "right"}
+
+#: Columns of ``gaitrite_test.csv`` that hold event times in GAITRite's clock.
+GAITRITE_TIME_COLUMNS = ("HeelOn", "HeelOff", "MidOn", "MidOff", "ToeOn", "ToeOff",
+                         "FirstContact", "FootFlat", "LastContact")
+
 
 @dataclass(frozen=True)
 class VideoInfo:
@@ -151,6 +164,85 @@ class Clip:
 
     def insole_duration_s(self, side: str = "left") -> float:
         return len(self.insole(side)) / NOMINAL_INSOLE_HZ
+
+    def gaitrite_events(self) -> pd.DataFrame | None:
+        """GAITRite footfalls with event times converted to **clip time**.
+
+        The conversion is ``clip_time = gaitrite_time + offset_seconds``, using
+        the per-foot offset from ``sync_auto.json`` (the two insoles are
+        separate devices with slightly different offsets). Both the sign
+        convention and the foot mapping were established by matching predicted
+        heel strikes against insole stance onsets -- see
+        :data:`GAITRITE_FOOT_TO_SIDE`.
+
+        Adds ``side`` and ``<col>_clip`` columns. Rows whose events fall outside
+        the clip are kept and flagged by ``in_clip`` rather than dropped, so the
+        caller decides.
+        """
+        g = self.gaitrite()
+        sync = self.sync()
+        if g is None or g.empty or sync is None:
+            return None
+        out = g.copy()
+        try:
+            foot = out["Foot"].astype(int)
+        except (KeyError, ValueError):
+            return None
+        out["side"] = foot.map(GAITRITE_FOOT_TO_SIDE)
+
+        offsets = {"left": sync.get("L", {}).get("offset_seconds"),
+                   "right": sync.get("R", {}).get("offset_seconds")}
+        if any(v is None for v in offsets.values()):
+            return None
+        shift = out["side"].map(offsets).astype(float)
+
+        for col in GAITRITE_TIME_COLUMNS:
+            if col in out.columns:
+                out[f"{col}_clip"] = pd.to_numeric(out[col], errors="coerce") + shift
+
+        duration = self.insole_duration_s()
+        heel = out.get("HeelOn_clip")
+        out["in_clip"] = (heel >= -0.2) & (heel <= duration + 0.2) if heel is not None else False
+        return out
+
+    def contact_labels(self, side: str, times: np.ndarray | None = None):
+        """Stance/swing labels from GAITRite events, plus where they are valid.
+
+        Returns ``(labels, valid)``, both boolean arrays over ``times``.
+
+        The second array is not optional bookkeeping. **GAITRite only records
+        footfalls that land on the instrumented walkway**, so steps taken before
+        stepping onto the mat or after leaving it produce no events at all. Those
+        samples would otherwise be labelled "swing" while the foot is in fact
+        loaded -- on P1/FP/1 the maximum load during nominal "swing" was 24409
+        counts, close to the mean during labelled contact. ``valid`` marks the
+        span actually covered by GAITRite (first heel strike to last toe-off);
+        outside it the labels mean nothing and must be dropped.
+
+        These are *weak labels* from an independent reference system, not
+        pressure measurements.
+        """
+        ev = self.gaitrite_events()
+        if ev is None:
+            return None
+        if times is None:
+            times = self.pressure_time(side)
+        times = np.asarray(times, dtype=float)
+        rows = ev[(ev["side"] == side) & ev["in_clip"]]
+        if rows.empty or "HeelOn_clip" not in rows or "ToeOff_clip" not in rows:
+            return None
+        on_times = pd.to_numeric(rows["HeelOn_clip"], errors="coerce").to_numpy(float)
+        off_times = pd.to_numeric(rows["ToeOff_clip"], errors="coerce").to_numpy(float)
+        finite = np.isfinite(on_times) & np.isfinite(off_times)
+        if not finite.any():
+            return None
+        on_times, off_times = on_times[finite], off_times[finite]
+
+        labels = np.zeros(len(times), dtype=bool)
+        for on, off in zip(on_times, off_times):
+            labels |= (times >= on) & (times <= off)
+        valid = (times >= on_times.min()) & (times <= off_times.max())
+        return labels, valid
 
     def iter_frames(self, stride: int = 1, max_frames: int | None = None):
         """Stream video frames lazily. Never loads a whole clip into RAM."""

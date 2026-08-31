@@ -24,6 +24,8 @@ Status values: **works** (run here), *untested* (not yet attempted),
 | COLMAP | *not installed* | Needed only for FOCUS-SfM. Prefer the Homebrew build; no CUDA needed on Mac |
 | CadQuery / LatticeQuery | *not installed* | Milestone 8. Visole's own lattice engine depends on neither |
 | PyTorch3D (for FOCUS) | *untested* | **Expect partial CPU fallback** — some ops are CUDA-only. Verify op by op; do not assume the whole pipeline runs on MPS |
+| torchvision Keypoint R-CNN | **works on MPS** | 2D body pose. **0.104 s/frame on MPS vs 1.14 s/frame on CPU** (min_size=480 vs default) -- roughly 11x, the clearest MPS win so far |
+| certifi | **required** | macOS framework Python ships no CA bundle; see below |
 | MLX | *not installed* | Only for new models written from scratch, never for porting upstream research |
 | nTop | **blocked** | No Apple Silicon build. Export contract kept so a Windows box could consume the field |
 
@@ -67,3 +69,5 @@ resolution or sequence length — never disable PyTorch's MPS memory limits.
 | pytest hanging forever | Re-emitting warnings while iterating the live `catch_warnings` list — it appends to the list being iterated | Snapshot the list and exit the context first |
 | Stray marks outside the insole outline | `ElementTree.iter()` also returns `<path>` elements inside `<defs>`/`<symbol>`/`<marker>` | Walk the tree and skip non-rendered subtrees |
 | `python3` resolves to a PlatformIO venv | It is first on `PATH` | Use `envs/core/bin/python` explicitly; the venv is built from the 3.12 framework build |
+| `CERTIFICATE_VERIFY_FAILED` downloading pretrained weights | The macOS **framework** Python build has no CA bundle, so `urllib` (and therefore `torch.hub`) cannot verify TLS. `curl` works because it uses the system keychain, which masks the problem until the first model download | `pip install certifi` and set `SSL_CERT_FILE=$(python -c "import certifi;print(certifi.where())")`. `scripts/extract_pose.py` sets it automatically |
+| `RuntimeWarning: Mean of empty slice` | `np.nanmean` over all-NaN input — every per-channel correlation is undefined for a constant predictor | Return NaN explicitly; NaN is the right answer, 0.0 would be a false claim |

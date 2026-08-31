@@ -174,11 +174,47 @@ load with an unloaded heel (push-off) while the right shows heel load with an
 unloaded forefoot (heel strike) — textbook double support. Total-load traces
 alternate cleanly between feet. The data behaves as gait data should.
 
-## 7. Open questions for the next session
+## 7. Open questions — two now resolved
 
-1. Confirm the `sync_auto.json` `offset_seconds` convention against GaitScope.
-2. Establish whether the device coordinate unit for `copX`/`copY` is millimetres.
-3. Quantify foot bounding-box size in pixels across the corpus (needs a detector)
+### RESOLVED: the sync convention and the foot mapping
+
+Both were settled empirically in Milestone 3 by predicting each GAITRite
+`HeelOn` into clip time and matching it to the nearest insole stance onset,
+across 120 walking clips (699 events):
+
+```
+clip_time = gaitrite_time + offset_seconds      (offset is negative, per foot)
+GAITRite Foot 0 = LEFT,  Foot 1 = RIGHT
+```
+
+| hypothesis | median error | p90 | within 50 ms |
+| --- | --- | --- | --- |
+| **Foot 0 = left** | **14.5 ms** | 35.9 ms | 93.8 % |
+| Foot 0 = right | 556.2 ms | 882.8 ms | 0.0 % |
+
+The median error is smaller than one 64 Hz sample period (15.6 ms), so the
+alignment is as tight as the insole sampling permits. The two feet carry
+slightly different offsets because the insoles are independent devices. Encoded
+as `GAITRITE_FOOT_TO_SIDE` and `Clip.gaitrite_events()`.
+
+**Consequence:** every walking clip now has exact, independently-sourced gait
+event times — free weak labels for contact and gait phase.
+
+### But GAITRite labels are only valid on the walkway
+
+GAITRite records only footfalls that land on the instrumented mat. Steps taken
+before stepping on or after stepping off produce no events, so a naive
+"not in any footfall = swing" rule mislabels loaded steps as swing. On P1/FP/1
+the maximum load during nominal "swing" was 24409 counts — close to the mean
+during labelled contact (20793).
+
+`Clip.contact_labels()` therefore returns `(labels, valid)`, where `valid`
+marks the GAITRite coverage span (71 % of that clip). Restricted to it, the
+contact/swing load ratio rises from 4.1 to **48.6** and swing max falls to 902.
+Callers must drop invalid samples; a test pins the trap.
+
+### Still open
+
+1. Establish whether the device coordinate unit for `copX`/`copY` is millimetres.
+2. Quantify foot bounding-box size in pixels across the corpus (needs a detector)
    to decide whether a foot-crop CNN is viable at the far end of the walkway.
-4. Check GAITRite `Foot` (0/1) against the L/R insole channels to confirm which
-   value denotes which foot before using GAITRite events as labels.
