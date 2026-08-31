@@ -1,0 +1,35 @@
+# --- data: never commit. Everything here is re-fetchable via scripts/download_data.py
+data/raw/**
+data/processed/**
+data/external/**
+!data/**/.gitkeep
+!data/splits/*.json          # splits are small, and reproducibility depends on them
+
+# --- environments and upstream checkouts
+envs/
+external/*/
+!external/README.md
+
+# --- experiment outputs (keep the READMEs and configs that describe them)
+experiments/**/outputs/
+experiments/**/*.mp4
+experiments/**/*.stl
+experiments/**/*.step
+experiments/**/*.ply
+experiments/**/*.pt
+experiments/**/*.ckpt
+!experiments/**/README.md
+
+# --- python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# --- os / editor
+.DS_Store
+.vscode/
+.idea/

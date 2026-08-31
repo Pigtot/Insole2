@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visole"
+version = "0.1.0"
+description = "Video -> foot geometry -> plantar loading -> pressure-adaptive lattice insole"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+  "numpy", "pandas", "scipy", "matplotlib", "opencv-python",
+  "scikit-image", "scikit-learn", "trimesh", "torch", "torchvision",
+  "tqdm", "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+# Installed only when the lattice work needs them (Milestone 8).
+lattice = ["cadquery"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+filterwarnings = [
+  # scikit-image's marching_cubes sets ndarray.shape directly; NumPy 2.5
+  # deprecates that. Upstream issue, nothing for us to fix.
+  "ignore:Setting the shape on a NumPy array has been deprecated:DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

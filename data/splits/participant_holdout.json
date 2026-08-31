@@ -1,0 +1,33 @@
+{
+  "name": "participant_holdout",
+  "train": [
+    "P2",
+    "P4",
+    "P5",
+    "P6",
+    "P8",
+    "P9",
+    "P10",
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P17",
+    "P19",
+    "P24"
+  ],
+  "val": [
+    "P1",
+    "P3",
+    "P12",
+    "P21"
+  ],
+  "test": [
+    "P7",
+    "P11",
+    "P20",
+    "P23"
+  ],
+  "seed": 0,
+  "note": "Participant-disjoint. Test participants are unseen during training."
+}
