@@ -171,6 +171,68 @@ def predict_ridge(model, X):
     return Xs @ model["W"] + model["ymu"]
 
 
+def fit_contact_gated(X, Y, contact, valid, alpha: float):
+    """Contact-gated predictor, after HOPE (arXiv 2608.06192).
+
+    HOPE predicts hand pressure as ``p = c * p_tilde`` -- a contact probability
+    multiplied by a magnitude -- so that "no contact implies no pressure" is
+    enforced by the architecture rather than left for the model to discover.
+
+    That structure fits plantar loading even better than it fits hands: a foot in
+    swing is *exactly* zero across all 32 channels for roughly half of every
+    walking clip. A single linear map cannot represent a hard zero and instead
+    smears a compromise across both phases.
+
+    Two differences from HOPE, both forced by our data:
+      * the gate is per **foot**, not per vertex -- a foot is on the ground or it
+        is not, and we have exactly two feet;
+      * the magnitude head is fitted on contact frames only, so it learns "given
+        this foot is down, how is load distributed" without being pulled toward
+        zero by swing frames.
+    """
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    gates = {}
+    for j, side in enumerate(("left", "right")):
+        m = valid[:, j]
+        y = contact[m, j]
+        if m.sum() < 50 or len(set(y.tolist())) < 2:
+            gates[side] = None
+            continue
+        clf = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000, C=0.1))
+        clf.fit(X[m], y)
+        gates[side] = clf
+
+    # Magnitude head: contact frames only, per foot half of the target.
+    mags = {}
+    for j, side in enumerate(("left", "right")):
+        cols = slice(0, 32) if side == "left" else slice(32, 64)
+        m = valid[:, j] & contact[:, j]
+        if m.sum() < 50:
+            mags[side] = None
+            continue
+        mags[side] = fit_ridge(X[m], Y[m, cols], alpha)
+    return {"gates": gates, "mags": mags}
+
+
+def predict_contact_gated(model, X):
+    out = np.zeros((len(X), 64))
+    for j, side in enumerate(("left", "right")):
+        cols = slice(0, 32) if side == "left" else slice(32, 64)
+        gate, mag = model["gates"][side], model["mags"][side]
+        if mag is None:
+            continue
+        magnitude = np.clip(predict_ridge(mag, X), 0, None)
+        if gate is None:
+            out[:, cols] = magnitude
+            continue
+        prob = gate.predict_proba(X)[:, 1][:, None]
+        out[:, cols] = prob * magnitude
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--split", default=str(REPO / "data/splits/participant_holdout.json"))
@@ -228,6 +290,13 @@ def main() -> int:
     b1 = regression_metrics(Yte, pred_te)
     b1.update(skill_score(Yte, pred_te, base_te))
 
+    # --- contact-gated variant (HOPE-style) -------------------------------
+    gated = fit_contact_gated(Xtr, Ytr, Ktr, Vtr, alpha)
+    pred_gated = np.clip(predict_contact_gated(gated, Xte), 0, None)
+    b2 = regression_metrics(Yte, pred_gated)
+    b2.update(skill_score(Yte, pred_gated, base_te))
+    cop_b2 = cop_error(Yte[:, :32], pred_gated[:, :32], left_map.xy)
+
     xy = left_map.xy
     cop_b0 = cop_error(Yte[:, :32], base_te[:, :32], xy)
     cop_b1 = cop_error(Yte[:, :32], pred_te[:, :32], xy)
@@ -274,28 +343,32 @@ def main() -> int:
         "ridge_alpha": alpha,
         "baseline_0_mean_predictor": b0,
         "baseline_1_kinematics_ridge": b1,
-        "cop_error_left_foot": {"baseline_0": cop_b0, "baseline_1": cop_b1},
+        "baseline_2_contact_gated": b2,
+        "cop_error_left_foot": {"baseline_0": cop_b0, "baseline_1": cop_b1,
+                                "baseline_2_gated": cop_b2},
         "baseline_1_by_participant": by_participant,
         "baseline_1_by_condition": by_condition,
         "contact_task": contact_results,
     }
     (OUT / f"baseline_report_{tag}.json").write_text(json.dumps(report, indent=2))
     np.savez_compressed(OUT / f"baseline_predictions_{tag}.npz",
-                        y_true=Yte, y_pred=pred_te, y_base=base_te,
+                        y_true=Yte, y_pred=pred_te, y_gated=pred_gated, y_base=base_te,
                         participant=Pte, condition=Cte)
 
     print("\n=== TEST (participant-disjoint) ===")
-    print(f"{'':28}{'Baseline 0':>14}{'Baseline 1':>14}")
+    print(f"{'':28}{'Baseline 0':>14}{'B1 direct':>14}{'B2 gated':>14}")
     for key, label in (("mae", "MAE (counts)"), ("rmse", "RMSE (counts)"),
                        ("total_load_mae", "total-load MAE"),
                        ("total_load_r", "total-load r"),
                        ("mean_channel_r", "mean per-channel r")):
-        print(f"{label:28}{b0[key]:>14.3f}{b1[key]:>14.3f}")
+        print(f"{label:28}{b0[key]:>14.3f}{b1[key]:>14.3f}{b2[key]:>14.3f}")
     print(f"{'COP error (svg units)':28}{cop_b0['cop_mae_units']:>14.1f}"
-          f"{cop_b1['cop_mae_units']:>14.1f}")
-    print(f"\nskill vs mean predictor : {b1['skill_vs_baseline']:+.4f}"
+          f"{cop_b1['cop_mae_units']:>14.1f}{cop_b2['cop_mae_units']:>14.1f}")
+    print(f"\nskill vs mean predictor  B1 direct: {b1['skill_vs_baseline']:+.4f}"
           f"   (total load {b1['skill_total_load']:+.4f})")
-    print(f"beats the mean predictor: {b1['beats_baseline']}")
+    print(f"skill vs mean predictor  B2 gated : {b2['skill_vs_baseline']:+.4f}"
+          f"   (total load {b2['skill_total_load']:+.4f})")
+    print(f"beats the mean predictor: direct={b1['beats_baseline']} gated={b2['beats_baseline']}")
     print("\nby test participant:")
     for p, m in sorted(by_participant.items()):
         print(f"  {p:>5}  skill {m['skill_vs_baseline']:+.4f}   MAE {m['mae']:8.2f}")
