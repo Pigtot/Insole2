@@ -13,6 +13,12 @@ external/*/
 # --- experiment outputs
 # Figures and metrics ARE tracked: they are the evidence the write-ups cite, and
 # they are small. Heavy regenerable artifacts are not.
+#
+# Per-view model intermediates are NOT evidence: a full Foot3D run writes
+# rgb/mask/toc/normal PNGs for all 474 views, which is 485 MB of regenerable
+# output. Ignore the per-view directories and keep the summary figures/metrics.
+experiments/focus_baseline/foot3d/*/*/
+experiments/focus_baseline/synthetic/*/
 experiments/**/*.stl
 experiments/**/*.step
 experiments/**/*.ply
