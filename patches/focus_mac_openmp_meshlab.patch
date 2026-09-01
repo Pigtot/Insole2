@@ -1,0 +1,26 @@
+diff --git a/FOCUS/utils/remeshing.py b/FOCUS/utils/remeshing.py
+index 6cd2bcb..a0c6b47 100644
+--- a/FOCUS/utils/remeshing.py
++++ b/FOCUS/utils/remeshing.py
+@@ -11,11 +11,16 @@ import os
+ 
+ def _setup_meshlab():
+     """Needed for meshlab. May interfere with certain Open3D functionality."""
+-    if os.environ.get("KMP_DUPLICATE_LIB_OK", "True"):
+-        print("Turning off KMP_DUPLICATE_LIB_OK for Meshlab. May interfere with Open3D.")
+-        os.environ["KMP_DUPLICATE_LIB_OK"] = "False"
+-
+-    # TODO: Check whether this is always needed. But setting this to False seems to fix the issue on Macbook M1.
++    # Apple Silicon: KMP_DUPLICATE_LIB_OK must stay TRUE here. torch's libomp is
++    # already initialised in this process and pymeshlab loads its own, so setting
++    # the flag to "False" makes libomp abort() the process at the first Poisson
++    # call. The original guard fired unconditionally anyway: os.environ.get()
++    # returns a string and "False" is truthy.
++    #
++    # Safe here because meshlab is pinned to one thread (OMP_NUM_THREADS below,
++    # and threads=1 passed to the Poisson call), so the two OpenMP runtimes
++    # never schedule work concurrently.
++    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+     os.environ['OMP_NUM_THREADS'] = '1'
+ 
+ def cutoff_above(points, z=0.1) -> (np.ndarray, np.ndarray):

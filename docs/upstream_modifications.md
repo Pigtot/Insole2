@@ -29,6 +29,31 @@ Reapply after a fresh clone:
 git -C external/FOCUS apply ../../patches/focus_numpy2_tostring.patch
 ```
 
+## FOCUS — OpenMP guard aborts the process on Apple Silicon
+
+| | |
+| --- | --- |
+| File | `FOCUS/utils/remeshing.py`, `_setup_meshlab()` |
+| Patch | [`patches/focus_mac_openmp_meshlab.patch`](../patches/focus_mac_openmp_meshlab.patch) |
+
+**Why.** The guard is
+
+```python
+if os.environ.get("KMP_DUPLICATE_LIB_OK", "True"):   # always true
+    os.environ["KMP_DUPLICATE_LIB_OK"] = "False"
+```
+
+`os.environ.get` returns a string and every non-empty string is truthy --
+including `"False"` -- so the branch fires unconditionally and *disables*
+duplicate-OpenMP tolerance. On this machine torch's `libomp` is already
+initialised in-process when pymeshlab loads its own, so libomp calls `abort()`
+at the first Poisson reconstruction: no traceback, process dead.
+
+**Change.** Set `KMP_DUPLICATE_LIB_OK=TRUE` instead. Safe here because the same
+function pins `OMP_NUM_THREADS=1` and the Poisson call passes `threads=1`, so
+the two runtimes never schedule work concurrently. Verified by reconstructing
+all 14 Foot3D scans with sane, symmetric chamfer distances.
+
 ## Everything else is an adapter, not a modification
 
 The remaining Mac accommodations live outside the upstream tree, in

@@ -56,7 +56,7 @@ OOM. Never disable MPS memory limits.
 | 1 | Repository foundation | **Done** — 69 tests passing |
 | 2 | Public data audit | **Done** — `experiments/gait_dataset_audit/` |
 | 3 | Pressure baseline | **Done** — pose kinematics reach skill +0.46 vs mean predictor |
-| 4 | FOCUS inference | **Port done** — runs on MPS at 20x CPU; accuracy blocked on Foot3D data request |
+| 4 | FOCUS inference | **Done** — 14/14 Foot3D scans, median **2.93 mm** chamfer, 474 images in 3.2 min |
 | 5 | MapAnything comparator | Optional, after 4 |
 | 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist |
 | 7 | Registration simulation | Not started |
