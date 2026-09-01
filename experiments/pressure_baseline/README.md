@@ -97,6 +97,39 @@ It slightly *hurts* total-load MAE (4689 → 4905) because multiplying by a
 probability below 1 shrinks totals. That trade — better distribution and phase,
 slightly worse magnitude — is reported rather than hidden.
 
+## Leave-one-subject-out: the result holds across all 22 people
+
+The 14/4/4 holdout gave one number from four test participants, one of which
+(P23) scored well below the rest. That is too few people to know if the result is
+stable. Every participant was therefore held out in turn:
+
+```bash
+envs/core/bin/python scripts/evaluate_loso.py --features pose --max-clips-per-participant 12
+```
+
+| | direct | contact-gated |
+| --- | --- | --- |
+| Mean skill vs mean predictor | +0.501 ± 0.112 | **+0.514 ± 0.119** |
+| Range across people | +0.243 … +0.608 | +0.222 … +0.634 |
+| **Participants beating the mean predictor** | **22 / 22** | **22 / 22** |
+| Which-foot-is-loaded accuracy | — | **0.884 ± 0.037** (worst 0.794) |
+
+Two things this changes:
+
+1. **The result is stronger than the holdout suggested** (+0.514 vs +0.463), and
+   not one of the 22 participants scores negative.
+2. **The spread is bimodal, not smooth.** Seventeen participants sit between
+   +0.45 and +0.63; four (P4 +0.222, P10 +0.238, P23 +0.298, P5 +0.370) sit well
+   below. P23 was also the weak participant in the holdout split, so this is a
+   stable property of those individuals, not fold noise. *Why* those four differ
+   — gait, clothing, footwear, pose-detection quality — is unexplained and is the
+   most interesting open question in this milestone.
+
+Gating helps on average but not universally: it *lowers* skill for P4, P10 and
+P13. Reporting the mean alone would hide that.
+
+![leave-one-subject-out](outputs/loso_pose.png)
+
 ## Honest limits
 
 1. **Amplitude is compressed.** Even gated, the total-load slope is 0.46 against
@@ -104,9 +137,9 @@ slightly worse magnitude — is reported rather than hidden.
 2. **It is not a missing calibration constant.** Applying the optimal linear
    rescale to the total-load prediction changes MAE by −1 %. The residual is
    genuine per-frame error.
-3. **Four test participants.** P23 scores +0.255 while the others reach
-   +0.52…+0.56. With a pool this small, expect wide error bars; leave-one-subject-out
-   (`data/splits/loso_index.json`, 22 folds) is the proper next test.
+3. **Four participants are much weaker than the rest** (+0.22…+0.37 against
+   +0.45…+0.63). The cause is unknown. Until it is understood, the mean should be
+   quoted with its spread, never alone.
 4. **Slow cadence is hardest** (SP +0.410 vs NP +0.504) — plausibly because slower
    walking gives smaller, slower limb excursions.
 5. **This is not plantar-surface estimation.** Participants are shod and the sole
@@ -119,7 +152,8 @@ slightly worse magnitude — is reported rather than hidden.
 
 The result earns the right to more capacity, and points at where:
 
-- **Leave-one-subject-out** across all 22 participants, for real error bars.
+- **Explain the four weak participants** (P4, P10, P23, P5). Check pose-detection
+  quality and walking speed for each before assuming it is a model limitation.
 - **A temporal model** (small GRU/TCN over gait cycles). Amplitude error and the
   compressed slope are exactly what per-frame prediction gets wrong, and this is
   the affordable answer to EgoPressDiff's criticism of frame-independent

@@ -19,7 +19,7 @@ Research project for ISEF. Software phase, Apple Silicon, no physical hardware y
 | Machine audit | Apple M1 Max, 64 GB, macOS 26.5.2, PyTorch 2.13.0, **MPS verified** |
 | Dataset | Insole-GAITRite, 22 participants, 794 clips, checksums verified |
 | Tests | **117 passing** |
-| Baselines | Pose kinematics: skill **+0.46** vs mean predictor; contact **0.85** balanced acc. |
+| Baselines | Pose kinematics: **+0.514 ± 0.119** skill vs mean predictor, **22/22** participants (leave-one-subject-out) |
 
 ## Quick start
 
@@ -81,8 +81,9 @@ bare skin) toward UnderPressure (motion → force). See the
 **4. Video does predict plantar loading — but only via limb kinematics.** Coarse
 whole-body motion features scored +0.009 skill against a mean predictor and
 *chance* on stance-vs-swing. Swapping in ankle/knee/hip pose raised that to
-**+0.46 skill** and **0.85** balanced contact accuracy, and the model identifies
-which foot carries more load on **87.3%** of frames. The first negative was a
+**+0.514 ± 0.119 skill** with **all 22 participants** beating the mean predictor
+under leave-one-subject-out, **0.85** balanced contact accuracy, and it identifies
+which foot carries more load on **88.4%** of frames. The first negative was a
 statement about the features, not about video — see
 [Milestone 3](experiments/pressure_baseline/README.md).
 
