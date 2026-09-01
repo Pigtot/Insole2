@@ -31,6 +31,7 @@ agreeing with CPU to 1.1e-7. No CUDA, and none will be installed.
 | FOCUS TOC predictor | **MPS** (verified) | 90 ms/image, 20.2x CPU, matches CPU to 3.2e-6 |
 | PyTorch3D geometry | **CPU (mandatory)** | `knn_points` / `sample_points_from_meshes` **segfault** on MPS, and the ATen fallback does not cover them |
 | COLMAP | CPU, external binary | 4.1.1 Homebrew, no CUDA |
+| Blender renders | **Metal GPU** (Cycles) | 5.2.1, headless `--background`. Not the MCP bridge, which needs the GUI |
 | nTop | **Not available** | Export contract only (CSV/NPY/JSON + mesh + transform) |
 
 ### MPS rules
@@ -59,7 +60,7 @@ OOM. Never disable MPS memory limits.
 | 1 | Repository foundation | **Done** — 69 tests passing |
 | 2 | Public data audit | **Done** — `experiments/gait_dataset_audit/` |
 | 3 | Pressure baseline | **Done** — pose kinematics reach skill +0.46 vs mean predictor |
-| 4 | FOCUS inference | **Done** — 14/14 Foot3D scans, median **2.93 mm** chamfer, 474 images in 3.2 min |
+| 4 | FOCUS inference | **Done** — 14/14 Foot3D scans, median **2.93 mm** *with given cameras*; **14.1 mm** when COLMAP estimates them (Phase D) |
 | 5 | MapAnything comparator | Optional, after 4 |
 | 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist |
 | 7 | Registration simulation | Not started |
