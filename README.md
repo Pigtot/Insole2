@@ -18,8 +18,8 @@ Research project for ISEF. Software phase, Apple Silicon, no physical hardware y
 | --- | --- |
 | Machine audit | Apple M1 Max, 64 GB, macOS 26.5.2, PyTorch 2.13.0, **MPS verified** |
 | Dataset | Insole-GAITRite, 22 participants, 794 clips, checksums verified |
-| Tests | **69 passing** |
-| Models | None trained yet — by design |
+| Tests | **117 passing** |
+| Baselines | Pose kinematics: skill **+0.46** vs mean predictor; contact **0.85** balanced acc. |
 
 ## Quick start
 
@@ -78,7 +78,15 @@ changes the project's framing from PressureVision (appearance → pressure, need
 bare skin) toward UnderPressure (motion → force). See the
 [audit](experiments/gait_dataset_audit/README.md).
 
-A fourth, from building the lattice engine: the gyroid sheet **fragments into
+**4. Video does predict plantar loading — but only via limb kinematics.** Coarse
+whole-body motion features scored +0.009 skill against a mean predictor and
+*chance* on stance-vs-swing. Swapping in ankle/knee/hip pose raised that to
+**+0.46 skill** and **0.85** balanced contact accuracy, and the model identifies
+which foot carries more load on **87.3%** of frames. The first negative was a
+statement about the features, not about video — see
+[Milestone 3](experiments/pressure_baseline/README.md).
+
+And from building the lattice engine: the gyroid sheet **fragments into
 thousands of islands below ρ ≈ 0.19**, so the density floor is a measured
 printability constraint, not a taste parameter.
 

@@ -54,10 +54,10 @@ OOM. Never disable MPS memory limits.
 | 0 | Machine audit | **Done** — `reports/system_report.md` |
 | 1 | Repository foundation | **Done** — 69 tests passing |
 | 2 | Public data audit | **Done** — `experiments/gait_dataset_audit/` |
-| 3 | Pressure baseline | Next session |
+| 3 | Pressure baseline | **Done** — pose kinematics reach skill +0.46 vs mean predictor |
 | 4 | FOCUS inference | Session 3; isolated env |
 | 5 | MapAnything comparator | Optional, after 4 |
-| 6 | `PressureField` contract | Partly — bins, sensor map, splits exist |
+| 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist |
 | 7 | Registration simulation | Not started |
 | 8 | Lattice demonstration | **PoC done** — A/B/C/D coupons, watertight, connected |
 | 9 | Integrated demo | Not started |

@@ -274,7 +274,7 @@ def main() -> int:
     # --- Baseline 1: ridge on kinematic features -------------------------
     if args.alpha is None:
         best, best_alpha = None, None
-        for a in (1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7):
+        for a in (1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7):
             m = fit_ridge(Xtr, Ytr, a)
             sc = float(((predict_ridge(m, Xva) - Yva) ** 2).mean())
             print(f"  alpha={a:>8.0f}  val MSE={sc:,.1f}")

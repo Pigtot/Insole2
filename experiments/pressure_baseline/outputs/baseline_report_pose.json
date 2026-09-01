@@ -1,0 +1,272 @@
+{
+  "task": "video frame -> 64 channels (left 32 + right 32 re-indexed to left numbering)",
+  "feature_set": "pose",
+  "units": "baseline-corrected raw sensor counts (NOT kPa)",
+  "split": {
+    "train": [
+      "P2",
+      "P4",
+      "P5",
+      "P6",
+      "P8",
+      "P9",
+      "P10",
+      "P13",
+      "P14",
+      "P15",
+      "P16",
+      "P17",
+      "P19",
+      "P24"
+    ],
+    "val": [
+      "P1",
+      "P3",
+      "P12",
+      "P21"
+    ],
+    "test": [
+      "P7",
+      "P11",
+      "P20",
+      "P23"
+    ]
+  },
+  "n_samples": {
+    "train": 8802,
+    "val": 2768,
+    "test": 2636
+  },
+  "n_features": 130,
+  "n_context_offsets": [
+    -6,
+    -3,
+    0,
+    3,
+    6
+  ],
+  "ridge_alpha": 10.0,
+  "baseline_0_mean_predictor": {
+    "n_samples": 2636,
+    "n_channels": 64,
+    "mae": 512.1158556283191,
+    "rmse": 642.8688425710762,
+    "normalised_mae": 0.1519812012192305,
+    "per_channel_mae_min": 127.10380086883809,
+    "per_channel_mae_median": 501.8017545287498,
+    "per_channel_mae_max": 952.683886292098,
+    "total_load_mae": 5776.362499174269,
+    "total_load_rmse": 7883.512712312615,
+    "total_load_r": 1.4433475507872065e-16,
+    "mean_channel_r": NaN
+  },
+  "baseline_1_kinematics_ridge": {
+    "n_samples": 2636,
+    "n_channels": 64,
+    "mae": 337.01478651660506,
+    "rmse": 475.95585738480383,
+    "normalised_mae": 0.10001625905644737,
+    "per_channel_mae_min": 115.13516597316108,
+    "per_channel_mae_median": 329.00837080213034,
+    "per_channel_mae_max": 594.7015413230946,
+    "total_load_mae": 4689.235005458646,
+    "total_load_rmse": 6406.734855292932,
+    "total_load_r": 0.5753331734997827,
+    "mean_channel_r": 0.6379197878269298,
+    "skill_vs_baseline": 0.45186365897918856,
+    "skill_total_load": 0.33955910484281737,
+    "beats_baseline": true
+  },
+  "baseline_2_contact_gated": {
+    "n_samples": 2636,
+    "n_channels": 64,
+    "mae": 319.92158896166717,
+    "rmse": 471.2006596719853,
+    "normalised_mae": 0.0949434915009696,
+    "per_channel_mae_min": 120.36565101474693,
+    "per_channel_mae_median": 309.3718667041956,
+    "per_channel_mae_max": 568.9082322276676,
+    "total_load_mae": 4904.990033052878,
+    "total_load_rmse": 6688.942625606177,
+    "total_load_r": 0.5686253931233445,
+    "mean_channel_r": 0.6487815479952146,
+    "skill_vs_baseline": 0.46276162815973765,
+    "skill_total_load": 0.2800946565761173,
+    "beats_baseline": true
+  },
+  "cop_error_left_foot": {
+    "baseline_0": {
+      "cop_mae_units": 177.61130822714622,
+      "cop_median_units": 171.24805978102353,
+      "cop_p90_units": 297.51986398226563,
+      "n_valid": 2636
+    },
+    "baseline_1": {
+      "cop_mae_units": 142.76180011380302,
+      "cop_median_units": 111.51334033351405,
+      "cop_p90_units": 314.1920796188534,
+      "n_valid": 2635
+    },
+    "baseline_2_gated": {
+      "cop_mae_units": 127.61327322761574,
+      "cop_median_units": 104.35807819734916,
+      "cop_p90_units": 276.73870502948034,
+      "n_valid": 2636
+    }
+  },
+  "baseline_1_by_participant": {
+    "P11": {
+      "n_samples": 538,
+      "n_channels": 64,
+      "mae": 295.42083482610286,
+      "rmse": 425.6954726700523,
+      "normalised_mae": 0.0895486010385277,
+      "per_channel_mae_min": 103.76947047746775,
+      "per_channel_mae_median": 269.7528427022715,
+      "per_channel_mae_max": 711.1941155256986,
+      "total_load_mae": 4430.0018315166135,
+      "total_load_rmse": 6101.794263746529,
+      "total_load_r": 0.7051593123089309,
+      "mean_channel_r": 0.7373017311210931,
+      "skill_vs_baseline": 0.5447015888078575,
+      "skill_total_load": 0.4887046830259977,
+      "beats_baseline": true
+    },
+    "P20": {
+      "n_samples": 565,
+      "n_channels": 64,
+      "mae": 279.16657467631313,
+      "rmse": 391.68687579416826,
+      "normalised_mae": 0.09192182241564475,
+      "per_channel_mae_min": 66.01403417992572,
+      "per_channel_mae_median": 272.9984274235254,
+      "per_channel_mae_max": 491.9484068550187,
+      "total_load_mae": 3881.664948824043,
+      "total_load_rmse": 4823.7817210552475,
+      "total_load_r": 0.6507357662140701,
+      "mean_channel_r": 0.6676575075491082,
+      "skill_vs_baseline": 0.5188374917646441,
+      "skill_total_load": 0.41222294814654903,
+      "beats_baseline": true
+    },
+    "P23": {
+      "n_samples": 789,
+      "n_channels": 64,
+      "mae": 425.8843899826079,
+      "rmse": 573.3106065525541,
+      "normalised_mae": 0.1432989199133943,
+      "per_channel_mae_min": 97.38486673037005,
+      "per_channel_mae_median": 430.4952662400286,
+      "per_channel_mae_max": 728.5854117162485,
+      "total_load_mae": 5357.618839294376,
+      "total_load_rmse": 7680.534192665235,
+      "total_load_r": 0.48755689574011807,
+      "mean_channel_r": 0.546553680113084,
+      "skill_vs_baseline": 0.255364560195931,
+      "skill_total_load": 0.2326589381945574,
+      "beats_baseline": true
+    },
+    "P7": {
+      "n_samples": 744,
+      "n_channels": 64,
+      "mae": 316.77778189910356,
+      "rmse": 454.42122737769665,
+      "normalised_mae": 0.0940105003261822,
+      "per_channel_mae_min": 107.44030919425647,
+      "per_channel_mae_median": 327.3217567660374,
+      "per_channel_mae_max": 495.16638210222294,
+      "total_load_mae": 4781.1566246561915,
+      "total_load_rmse": 6186.685873311265,
+      "total_load_r": 0.5814363812177752,
+      "mean_channel_r": 0.7155997911728813,
+      "skill_vs_baseline": 0.5570637467115722,
+      "skill_total_load": 0.3159164316134916,
+      "beats_baseline": true
+    }
+  },
+  "baseline_1_by_condition": {
+    "FP": {
+      "n_samples": 594,
+      "n_channels": 64,
+      "mae": 332.419824393072,
+      "rmse": 480.56677399867647,
+      "normalised_mae": 0.09865260695425927,
+      "per_channel_mae_min": 106.55972455085185,
+      "per_channel_mae_median": 320.47239226622764,
+      "per_channel_mae_max": 547.977147631323,
+      "total_load_mae": 5295.210774595823,
+      "total_load_rmse": 7168.916209923668,
+      "total_load_r": 0.5597242476775426,
+      "mean_channel_r": 0.664431778317927,
+      "skill_vs_baseline": 0.48047900791365106,
+      "skill_total_load": 0.3121398846347876,
+      "beats_baseline": true
+    },
+    "NP": {
+      "n_samples": 736,
+      "n_channels": 64,
+      "mae": 308.6752570187358,
+      "rmse": 440.3505307452398,
+      "normalised_mae": 0.09468566166218889,
+      "per_channel_mae_min": 122.57801861686002,
+      "per_channel_mae_median": 301.5322267016485,
+      "per_channel_mae_max": 540.8087807828715,
+      "total_load_mae": 4204.350528901195,
+      "total_load_rmse": 5437.283079247767,
+      "total_load_r": 0.664801329073771,
+      "mean_channel_r": 0.6760543943478274,
+      "skill_vs_baseline": 0.5038742284367408,
+      "skill_total_load": 0.4383940732679228,
+      "beats_baseline": true
+    },
+    "SP": {
+      "n_samples": 1306,
+      "n_channels": 64,
+      "mae": 355.0755071994614,
+      "rmse": 492.8631979676221,
+      "normalised_mae": 0.10792568607886364,
+      "per_channel_mae_min": 106.21321761953682,
+      "per_channel_mae_median": 346.92295754023246,
+      "per_channel_mae_max": 646.324329692557,
+      "total_load_mae": 4686.880769531234,
+      "total_load_rmse": 6543.00911379571,
+      "total_load_r": 0.579658055850258,
+      "mean_channel_r": 0.6157050967693033,
+      "skill_vs_baseline": 0.40998567449755097,
+      "skill_total_load": 0.30718767314607387,
+      "beats_baseline": true
+    }
+  },
+  "contact_task": {
+    "left": {
+      "accuracy": 0.8939465039887377,
+      "balanced_accuracy": 0.8460189910875542,
+      "sensitivity": 0.9550195567144719,
+      "specificity": 0.7370184254606366,
+      "precision": 0.9032059186189889,
+      "f1": 0.9283903675538656,
+      "positive_rate_true": 0.7198498357578602,
+      "positive_rate_pred": 0.7611450023463163,
+      "n_train": 6984,
+      "n_test": 2131,
+      "gaitrite_coverage_test": 0.8084218512898331,
+      "majority_class_accuracy": 0.7198498357578602,
+      "beats_majority": true
+    },
+    "right": {
+      "accuracy": 0.8867924528301887,
+      "balanced_accuracy": 0.8332791760211116,
+      "sensitivity": 0.9532967032967034,
+      "specificity": 0.7132616487455197,
+      "precision": 0.896640826873385,
+      "f1": 0.9241011984021305,
+      "positive_rate_true": 0.7229394240317776,
+      "positive_rate_pred": 0.7686196623634558,
+      "n_train": 6870,
+      "n_test": 2014,
+      "gaitrite_coverage_test": 0.7640364188163885,
+      "majority_class_accuracy": 0.7229394240317776,
+      "beats_majority": true
+    }
+  }
+}

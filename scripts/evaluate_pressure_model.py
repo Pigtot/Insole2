@@ -32,12 +32,16 @@ OUT = REPO / "experiments" / "pressure_baseline" / "outputs"
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--predictions", default=str(OUT / "baseline_predictions.npz"))
-    ap.add_argument("--report", default=str(OUT / "baseline_report.json"))
+    ap.add_argument("--tag", default="pose", help="which run to plot")
+    ap.add_argument("--predictions", default=None)
+    ap.add_argument("--report", default=None)
     args = ap.parse_args()
+    args.predictions = args.predictions or str(OUT / f"baseline_predictions_{args.tag}.npz")
+    args.report = args.report or str(OUT / f"baseline_report_{args.tag}.json")
 
     z = np.load(args.predictions, allow_pickle=True)
     y, p, b = z["y_true"], z["y_pred"], z["y_base"]
+    g = z["y_gated"] if "y_gated" in z.files else None
     participant, condition = z["participant"], z["condition"]
     report = json.loads(Path(args.report).read_text())
 
@@ -48,6 +52,8 @@ def main() -> int:
     n = min(600, len(y))
     ax.plot(y[:n].sum(1), lw=1.4, label="measured", color="k")
     ax.plot(p[:n].sum(1), lw=1.2, label="Baseline 1 (kinematics)", color="tab:red")
+    if g is not None:
+        ax.plot(g[:n].sum(1), lw=1.2, label="B2 contact-gated", color="tab:green")
     ax.plot(b[:n].sum(1), lw=1.0, ls="--", label="Baseline 0 (mean)", color="tab:blue")
     ax.set_title("Total load over test samples", fontsize=10)
     ax.set_xlabel("test sample"); ax.set_ylabel("counts")
@@ -67,8 +73,11 @@ def main() -> int:
     mae_b1 = np.abs(p - y).mean(0)
     mae_b0 = np.abs(b - y).mean(0)
     idx = np.arange(len(mae_b1))
-    ax.bar(idx - 0.2, mae_b0, width=0.4, label="Baseline 0", color="tab:blue")
-    ax.bar(idx + 0.2, mae_b1, width=0.4, label="Baseline 1", color="tab:red")
+    w = 0.27
+    ax.bar(idx - w, mae_b0, width=w, label="B0 mean", color="tab:blue")
+    ax.bar(idx, mae_b1, width=w, label="B1 direct", color="tab:red")
+    if g is not None:
+        ax.bar(idx + w, np.abs(g - y).mean(0), width=w, label="B2 gated", color="tab:green")
     ax.axvline(31.5, color="k", lw=0.8)
     ax.text(15, ax.get_ylim()[1] * 0.95, "left foot", ha="center", fontsize=8)
     ax.text(47, ax.get_ylim()[1] * 0.95, "right foot", ha="center", fontsize=8)
@@ -116,9 +125,10 @@ def main() -> int:
     else:
         ax.axis("off")
 
-    fig.suptitle("Milestone 3 — video → plantar loading, participant-disjoint test set "
+    fig.suptitle(f"Milestone 3 [{args.tag} features] — video → plantar loading, "
+                 "participant-disjoint test set "
                  "(units: baseline-corrected counts, NOT kPa)", fontsize=12)
-    path = OUT / "baseline_evaluation.png"
+    path = OUT / f"baseline_evaluation_{args.tag}.png"
     fig.savefig(path, dpi=120)
     plt.close(fig)
 
