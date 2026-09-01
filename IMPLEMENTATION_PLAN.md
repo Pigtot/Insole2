@@ -25,8 +25,9 @@ agreeing with CPU to 1.1e-7. No CUDA, and none will be installed.
 | Baseline 3 (temporal GRU/TCN) | **MPS** | Short sequences; keep sequence length ≤ 64 |
 | Implicit TPMS lattice, marching cubes | CPU (NumPy + scikit-image) | Not a GPU workload at this size |
 | Mesh handling, STL/STEP export | CPU (trimesh, later CadQuery) | — |
-| FOCUS reconstruction | **Mixed** — network on MPS, PyTorch3D ops likely CPU | PyTorch3D has CUDA-only kernels; expect per-op fallback. Verify op by op |
-| COLMAP (if FOCUS-SfM is needed) | CPU, external binary | Homebrew build; no CUDA on Mac |
+| FOCUS TOC predictor | **MPS** (verified) | 90 ms/image, 20.2x CPU, matches CPU to 3.2e-6 |
+| PyTorch3D geometry | **CPU (mandatory)** | `knn_points` / `sample_points_from_meshes` **segfault** on MPS, and the ATen fallback does not cover them |
+| COLMAP | CPU, external binary | 4.1.1 Homebrew, no CUDA |
 | nTop | **Not available** | Export contract only (CSV/NPY/JSON + mesh + transform) |
 
 ### MPS rules
@@ -55,7 +56,7 @@ OOM. Never disable MPS memory limits.
 | 1 | Repository foundation | **Done** — 69 tests passing |
 | 2 | Public data audit | **Done** — `experiments/gait_dataset_audit/` |
 | 3 | Pressure baseline | **Done** — pose kinematics reach skill +0.46 vs mean predictor |
-| 4 | FOCUS inference | Session 3; isolated env |
+| 4 | FOCUS inference | **Port done** — runs on MPS at 20x CPU; accuracy blocked on Foot3D data request |
 | 5 | MapAnything comparator | Optional, after 4 |
 | 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist |
 | 7 | Registration simulation | Not started |

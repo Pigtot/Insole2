@@ -1,0 +1,13 @@
+diff --git a/FOCUS/calibration/colmap_database.py b/FOCUS/calibration/colmap_database.py
+index 7caed30..3f45952 100644
+--- a/FOCUS/calibration/colmap_database.py
++++ b/FOCUS/calibration/colmap_database.py
+@@ -142,7 +142,7 @@ def pair_id_to_image_ids(pair_id):
+ 
+ def array_to_blob(array):
+     if IS_PYTHON3:
+-        return array.tostring()
++        return array.tobytes()
+     else:
+         return np.getbuffer(array)
+ 

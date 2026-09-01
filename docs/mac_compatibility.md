@@ -21,9 +21,10 @@ Status values: **works** (run here), *untested* (not yet attempted),
 | matplotlib 3.11.1 | **works** | `Agg` backend in scripts |
 | ffmpeg / ffprobe | **works** | Note: `-vsync` is gone in this build — use `-fps_mode` |
 | Homebrew, git 2.51 | **works** | |
-| COLMAP | *not installed* | Needed only for FOCUS-SfM. Prefer the Homebrew build; no CUDA needed on Mac |
+| COLMAP | **works** | 4.1.1 via Homebrew, built **without CUDA**. Needed `brew reinstall ffmpeg` to fix a dyld x265 soname mismatch |
 | CadQuery / LatticeQuery | *not installed* | Milestone 8. Visole's own lattice engine depends on neither |
-| PyTorch3D (for FOCUS) | *untested* | **Expect partial CPU fallback** — some ops are CUDA-only. Verify op by op; do not assume the whole pipeline runs on MPS |
+| PyTorch3D (for FOCUS) | **works, CPU-only** | 0.7.8 built from source in ~9 min, `MAX_JOBS=8`. **`knn_points` and `sample_points_from_meshes` SEGFAULT on MPS** — keep all pytorch3d geometry on CPU. See [focus_mac_port.md](focus_mac_port.md) |
+| FOCUS (TOC predictor) | **works on MPS** | 90 ms/image vs 1821 ms CPU (**20.2×**), matches CPU to 3.2e-6. Upstream already selects MPS itself |
 | torchvision Keypoint R-CNN | **works on MPS** | 2D body pose. **0.104 s/frame on MPS vs 1.14 s/frame on CPU** (min_size=480 vs default) -- roughly 11x, the clearest MPS win so far |
 | certifi | **required** | macOS framework Python ships no CA bundle; see below |
 | MLX | *not installed* | Only for new models written from scratch, never for porting upstream research |
@@ -64,6 +65,10 @@ resolution or sequence length — never disable PyTorch's MPS memory limits.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
+| Process dies with exit 139, no traceback | `knn_points` / `sample_points_from_meshes` given an MPS tensor. **`PYTORCH_ENABLE_MPS_FALLBACK` does not cover third-party compiled kernels**, only ATen ops | Keep pytorch3d geometry on CPU |
+| `CERTIFICATE_VERIFY_FAILED` on import | python.org build has no CA bundle; a model downloads weights at import | Set `SSL_CERT_FILE` to `certifi.where()` |
+| `'numpy.ndarray' has no attribute 'tostring'` | Removed in NumPy 2.0 | `.tobytes()` |
+| `dyld: libx265.216.dylib not loaded` | Homebrew ffmpeg linked to an older x265 soname | `brew reinstall ffmpeg` — reinstall the *dependent*, not the dependency |
 | `AttributeError: 'numpy.ndarray' object has no attribute 'ptp'` | NumPy 2.x removed the method | `np.ptp(x)` |
 | `Unrecognized option 'vsync'` | Removed in this ffmpeg | `-fps_mode passthrough` |
 | pytest hanging forever | Re-emitting warnings while iterating the live `catch_warnings` list — it appends to the list being iterated | Snapshot the list and exit the context first |
