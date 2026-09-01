@@ -134,3 +134,51 @@ def test_plantar_profile_is_zero_at_its_lowest_point():
 def test_plantar_profile_rejects_empty_selection():
     with pytest.raises(ValueError):
         plantar_profile_from_mesh(np.zeros((10, 3)), np.array([], dtype=int), (8, 8))
+
+
+# --- bottoming out -------------------------------------------------------
+def test_bottoming_out_is_reported():
+    """Too soft and too thin: the insole crushes flat and stops cushioning."""
+    prof = dome_profile(SHAPE, 0.004)
+    E = np.full(SHAPE, 0.15e6)
+    h = 0.004
+    sol = solve_contact(prof, series_stiffness(E, h), load_n=LOAD, cell_area_m2=CELL_A,
+                        allow_tilt=False, thickness_m=h,
+                        insole_stiffness_pa_per_m=E / h)
+    assert sol.bottomed_fraction > 0.0
+
+
+def test_stiff_insole_does_not_bottom_out():
+    prof = dome_profile(SHAPE, 0.004)
+    E = np.full(SHAPE, 40e6)
+    h = 0.010
+    sol = solve_contact(prof, series_stiffness(E, h), load_n=LOAD, cell_area_m2=CELL_A,
+                        allow_tilt=False, thickness_m=h,
+                        insole_stiffness_pa_per_m=E / h)
+    assert sol.bottomed_fraction == 0.0
+
+
+def test_densification_limit_uses_the_insole_share_not_total_indentation():
+    """Springs in series share displacement. Charging the whole indentation to the
+    insole (an earlier bug) makes bottoming look far worse than it is."""
+    prof = np.zeros(SHAPE)
+    E = np.full(SHAPE, 2.0e6)
+    h = 0.010
+    K = series_stiffness(E, h)                       # includes soft tissue
+    soft_tissue = solve_contact(prof, K, load_n=LOAD, cell_area_m2=CELL_A,
+                                allow_tilt=False, thickness_m=h,
+                                insole_stiffness_pa_per_m=E / h)
+    # Same insole, no tissue in series -> the insole takes ALL the indentation,
+    # so it must be at least as bottomed as when tissue shares the load.
+    K_only = series_stiffness(E, h, tissue_pa_per_m=None)
+    no_tissue = solve_contact(prof, K_only, load_n=LOAD, cell_area_m2=CELL_A,
+                              allow_tilt=False, thickness_m=h,
+                              insole_stiffness_pa_per_m=E / h)
+    assert no_tissue.bottomed_fraction >= soft_tissue.bottomed_fraction
+
+
+def test_bottoming_requires_thickness_information():
+    """Without a thickness there is nothing to bottom out against."""
+    sol = solve_contact(np.zeros(SHAPE), uniform_K(), load_n=LOAD,
+                        cell_area_m2=CELL_A, allow_tilt=False)
+    assert sol.bottomed_fraction == 0.0

@@ -44,7 +44,8 @@ from dataclasses import dataclass, field
 import numpy as np
 
 __all__ = [
-    "SOFT_TISSUE_STIFFNESS_PA_PER_M", "ContactSolution", "series_stiffness",
+    "SOFT_TISSUE_STIFFNESS_PA_PER_M", "DENSIFICATION_STRAIN", "ContactSolution",
+    "series_stiffness",
     "solve_contact", "plantar_profile_from_mesh", "dome_profile",
 ]
 
@@ -98,6 +99,10 @@ class ContactSolution:
     #: material, not a defect in the solver.
     stiffness_ratio: float = float("nan")
 
+    #: Fraction of contacting cells compressed past densification. Anything much
+    #: above zero means the insole is bottoming out and is too soft or too thin.
+    bottomed_fraction: float = 0.0
+
     @property
     def total_force_n(self) -> float:
         return float(self.pressure_pa.sum() * self.cell_area_m2)
@@ -127,6 +132,7 @@ class ContactSolution:
         cu, cv = self.center_of_pressure()
         return {
             "stiffness_ratio_insole_over_tissue": self.stiffness_ratio,
+            "bottomed_fraction": self.bottomed_fraction,
             "peak_pressure_kpa": self.peak_pressure_pa / 1e3,
             "p95_pressure_kpa": self.percentile_pressure_pa(95) / 1e3,
             "mean_pressure_kpa": (self.total_force_n / self.contact_area_m2 / 1e3
@@ -143,11 +149,25 @@ class ContactSolution:
         }
 
 
+#: Compressive strain at which a cellular solid densifies -- cell walls meet and
+#: the material stiffens sharply. ~0.6 is typical for foams and lattices at the
+#: densities used here (Gibson & Ashby). Past this point an insole is effectively
+#: "bottomed out" and behaves like the rigid sole underneath it.
+DENSIFICATION_STRAIN = 0.60
+
+#: How much stiffer the material becomes once densified. A hard stop would make
+#: the solve discontinuous; 50x is stiff enough to behave like one.
+DENSIFICATION_FACTOR = 50.0
+
+
 def solve_contact(profile_m: np.ndarray, stiffness_pa_per_m: np.ndarray, *,
                   load_n: float, cell_area_m2: float,
                   target_cop: tuple[float, float] | None = None,
                   allow_tilt: bool = True, max_iter: int = 200,
-                  stiffness_ratio: float = float("nan")) -> ContactSolution:
+                  stiffness_ratio: float = float("nan"),
+                  thickness_m: float | None = None,
+                  insole_stiffness_pa_per_m: np.ndarray | None = None,
+                  densification_strain: float = DENSIFICATION_STRAIN) -> ContactSolution:
     """Press a rigid plantar profile into a Winkler foundation.
 
     Unknowns are the rigid-body descent ``delta0`` and two tilts. They are found
@@ -176,11 +196,31 @@ def solve_contact(profile_m: np.ndarray, stiffness_pa_per_m: np.ndarray, *,
     uc, vc = (nu - 1) / 2.0, (nv - 1) / 2.0
     du, dv = iu - uc, iv - vc
 
+    # Bottoming out. Without this the model says "softer is always better" and the
+    # optimum runs off to zero stiffness, which is wrong: a foam crushed past its
+    # densification strain stops cushioning and transmits load like the rigid sole
+    # beneath it. Including it is what makes an interior optimum exist at all.
+    # The densification limit applies to the INSOLE's own compression, not to the
+    # total indentation -- soft tissue takes the rest. For springs in series the
+    # insole's share is d_insole = d_total * K_series / k_insole, so the limit on
+    # total indentation must be scaled up by k_insole/K_series. Applying it to the
+    # total directly (an earlier mistake) under-reports bottoming out badly.
+    if thickness_m is None or insole_stiffness_pa_per_m is None:
+        d_lim = None
+    else:
+        k_ins = np.asarray(insole_stiffness_pa_per_m, dtype=float)
+        share = np.divide(K, k_ins, out=np.ones_like(K), where=k_ins > 0)
+        share = np.clip(share, 1e-6, 1.0)
+        d_lim = densification_strain * thickness_m / share
+
     def fields(params):
         delta0, tu, tv = params
         d = delta0 + tu * du + tv * dv - s
         d = np.maximum(d, 0.0)
-        return d, K * d
+        if d_lim is None:
+            return d, K * d
+        excess = np.maximum(d - d_lim, 0.0)
+        return d, K * (np.minimum(d, d_lim) + DENSIFICATION_FACTOR * excess)
 
     def residuals(params):
         _, tu, tv = params
@@ -218,6 +258,8 @@ def solve_contact(profile_m: np.ndarray, stiffness_pa_per_m: np.ndarray, *,
         stiffness_ratio=stiffness_ratio,
         delta0_m=float(params[0]), tilt=(float(params[1]), float(params[2])),
         applied_load_n=load_n, cell_area_m2=cell_area_m2, converged=converged,
+        bottomed_fraction=(float((d > d_lim).sum() / max((d > 0).sum(), 1))
+                           if d_lim is not None else 0.0),
         residual={"force_rel": float((force - load_n) / load_n),
                   "optimizer_success": bool(sol.success), "cost": float(sol.cost)},
     )

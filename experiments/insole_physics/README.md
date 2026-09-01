@@ -70,7 +70,62 @@ To reach the regime where the design does something you need:
 
 Choosing the print material therefore matters more than choosing the grading law.
 
-## 3. How a null result turned into a finding
+## 3. The optimum
+
+```bash
+envs/core/bin/python scripts/optimize_insole.py
+```
+
+Searching base modulus x thickness x grading over 295 designs, with the real
+plantar profile and a real measured load field:
+
+> **Optimum: 1.5 MPa base material, 20 mm thick, soften grading -> 108 kPa peak.**
+> That is **41% below** a uniform 40 MPa TPU insole (184 kPa) and **43% below**
+> solid (190 kPa).
+
+At a more practical thickness the answer shifts but survives: **2.5 MPa at 10 mm
+-> 150 kPa**, still 19% better than the TPU plan.
+
+![optimum](outputs/insole_optimum.png)
+
+### Why there is an optimum at all
+
+Earlier the model said "softer is always better", which is a boundary answer and
+a sign of missing physics. What was missing is **bottoming out**: a cellular solid
+compressed past its densification strain (~0.6) has its cell walls meet, stiffens
+sharply, and transmits load like the rigid sole underneath.
+
+With that included, two effects oppose each other and the optimum becomes interior:
+
+| base modulus (20 mm insole) | peak kPa | bottomed |
+| --- | --- | --- |
+| 0.10 MPa | 239 | 32% |
+| 0.50 MPa | 461 | 13% |
+| 1.00 MPa | 352 | 5% |
+| **1.50 MPa** | **108** | **0%** |
+| 2.50 MPa | 127 | 0% |
+| 10.0 MPa | 166 | 0% |
+| 80.0 MPa | 187 | 0% |
+
+The optimum sits exactly at the edge of bottoming out — which is where a good
+cushion should sit: using all the available compression and no more. A boundary
+check confirms it is interior in both modulus and thickness, not pinned to the
+edge of the search.
+
+A subtlety worth recording: the densification limit applies to the **insole's own**
+compression, not the total indentation. Springs in series share displacement, so
+charging the whole indentation to the insole (which the first implementation did)
+hides bottoming out entirely — no design registered as bottomed and the optimum
+ran away to zero stiffness again.
+
+### What this means for the build
+
+Thicker helps, because it lets you go softer before bottoming out. But the
+dominant variable is the **material**, not the lattice grading: moving from 40 MPa
+TPU to a ~1.5-2.5 MPa foam-like base is worth ~40%, while the grading law is worth
+a few percent on top. Grading is the refinement; material choice is the decision.
+
+## 4. How a null result turned into a finding
 
 The first run returned peak pressure of 77.2 kPa for **every** design — including
 solid, which is ~50× stiffer than a ρ=0.2 lattice. That is not a plausible
@@ -85,7 +140,7 @@ Fixing it revealed the real mechanism, which is the stiffness ratio above. In a
 series-spring model the softer element dominates, so an error in the soft term
 silently erases the effect being measured. Worth remembering.
 
-## 4. Limits
+## 5. Limits
 
 1. **Winkler foundation**: no shear, no plate bending, no in-plane coupling.
 2. **Linear elastic, quasi-static**: TPU is viscoelastic; walking is dynamic.
@@ -98,8 +153,11 @@ silently erases the effect being measured. Worth remembering.
    not the bare sign.
 6. **Simulation only.** No printed insole, no pressure sensor, no person. Nothing
    here is a claim about real feet.
+7. **The optimum inherits every assumption above**, and the densification strain
+   (0.6) and densification factor (50x) are model constants, not measurements of
+   any printed lattice. A compression test on a printed coupon would replace both.
 
-## 5. Next
+## 6. Next
 
 - Cross-check one case against an independent solver — the Fusion bridge in
   `adapters/fusion/visole_import.py` (written, **not yet run**).

@@ -67,13 +67,17 @@ def run(context):
 
         low = path.lower()
         if low.endswith((".step", ".stp")):
-            opts = imp.createSTEPImportOptions(path)
-        elif low.endswith(".stl"):
-            opts = imp.createMeshImportOptions(path)
+            # STEP goes through ImportManager...
+            imp.importToTarget(imp.createSTEPImportOptions(path), root)
+        elif low.endswith((".stl", ".obj", ".3mf")):
+            # ...but meshes do NOT. ImportManager has no mesh option type at all
+            # (only FusionArchive/IGES/SAT/SMT/STEP/SVG); STL arrives via
+            # MeshBodies.add. Checked against the local API stubs, because the
+            # obvious-looking createMeshImportOptions does not exist.
+            root.meshBodies.add(path, adsk.fusion.MeshUnits.MillimeterMeshUnit)
         else:
             ui.messageBox(f"Unsupported file type: {path}")
             return
-        imp.importToTarget(opts, root)
 
         lines = [f"Imported: {path}", ""]
         for i, body in enumerate(root.bRepBodies):
