@@ -1,0 +1,99 @@
+{
+  "topology": "gyroid",
+  "E_s_pa": 40000000.0,
+  "poisson": 0.45,
+  "cell_size_mm": 8.0,
+  "cells": 3,
+  "resolution": 10,
+  "points": [
+    {
+      "thickness": 0.3,
+      "relative_density": 0.24,
+      "E_eff_pa": 3082396.772073549,
+      "E_ratio": 0.07705991930183873,
+      "n_elements": 6480
+    },
+    {
+      "thickness": 0.4,
+      "relative_density": 0.24,
+      "E_eff_pa": 3082396.772073549,
+      "E_ratio": 0.07705991930183873,
+      "n_elements": 6480
+    },
+    {
+      "thickness": 0.5,
+      "relative_density": 0.336,
+      "E_eff_pa": 5175217.636225466,
+      "E_ratio": 0.12938044090563663,
+      "n_elements": 9072
+    },
+    {
+      "thickness": 0.6000000000000001,
+      "relative_density": 0.39185185185185184,
+      "E_eff_pa": 6585721.666407834,
+      "E_ratio": 0.16464304166019583,
+      "n_elements": 10580
+    },
+    {
+      "thickness": 0.7,
+      "relative_density": 0.48785185185185187,
+      "E_eff_pa": 10085442.296954649,
+      "E_ratio": 0.2521360574238662,
+      "n_elements": 13172
+    },
+    {
+      "thickness": 0.8,
+      "relative_density": 0.5358518518518518,
+      "E_eff_pa": 11497375.560514186,
+      "E_ratio": 0.2874343890128546,
+      "n_elements": 14468
+    },
+    {
+      "thickness": 0.9000000000000001,
+      "relative_density": 0.5998518518518519,
+      "E_eff_pa": 13770110.159335421,
+      "E_ratio": 0.34425275398338556,
+      "n_elements": 16196
+    },
+    {
+      "thickness": 1.0,
+      "relative_density": 0.648,
+      "E_eff_pa": 17147605.313518003,
+      "E_ratio": 0.42869013283795004,
+      "n_elements": 17496
+    },
+    {
+      "thickness": 1.1,
+      "relative_density": 0.744,
+      "E_eff_pa": 21746375.90904585,
+      "E_ratio": 0.5436593977261462,
+      "n_elements": 20088
+    }
+  ],
+  "fit": {
+    "C": 0.8616930337219858,
+    "n": 1.7126100865070917,
+    "r_squared": 0.9970917959792172,
+    "regime": "mixed",
+    "description": "E*/Es = 0.862 * rho^1.713  (R^2=0.9971, mixed)"
+  },
+  "solid_block_check": {
+    "E_eff_pa": 40000000.00000006,
+    "E_s_pa": 40000000.0,
+    "ratio": 1.0000000000000016,
+    "passes": true
+  },
+  "elapsed_s": 582.7,
+  "convergence": {
+    "coarse_resolution": 6,
+    "coarse_fit": {
+      "C": 1.1183993084987176,
+      "n": 1.7495880175699472,
+      "r_squared": 1.0,
+      "regime": "mixed",
+      "description": "E*/Es = 1.118 * rho^1.750  (R^2=1.0000, mixed)"
+    },
+    "delta_n": 0.03697793106285552,
+    "delta_C_rel": 0.29790919124403037
+  }
+}

@@ -24,6 +24,9 @@ agreeing with CPU to 1.1e-7. No CUDA, and none will be installed.
 | Baseline 2 (CNN on foot crops) | **MPS**, batch 1–8 | MobileNetV3/ResNet18 at 224 px |
 | Baseline 3 (temporal GRU/TCN) | **MPS** | Short sequences; keep sequence length ≤ 64 |
 | Implicit TPMS lattice, marching cubes | CPU (NumPy + scikit-image) | Not a GPU workload at this size |
+| Lattice FEA (scikit-fem) | CPU (scipy sparse) | Pure Python, arm64-native. ~55 s per unit-cell solve at resolution 10 |
+| Winkler contact solve | CPU (scipy.optimize) | 3 unknowns; milliseconds |
+| Fusion 360 | **GUI only, no headless** | v2704.1.53 installed. `adsk.sim` is scriptable but solves in the cloud. Cross-check only, not a pipeline stage |
 | Mesh handling, STL/STEP export | CPU (trimesh, later CadQuery) | — |
 | FOCUS TOC predictor | **MPS** (verified) | 90 ms/image, 20.2x CPU, matches CPU to 3.2e-6 |
 | PyTorch3D geometry | **CPU (mandatory)** | `knn_points` / `sample_points_from_meshes` **segfault** on MPS, and the ATen fallback does not cover them |
@@ -60,7 +63,7 @@ OOM. Never disable MPS memory limits.
 | 5 | MapAnything comparator | Optional, after 4 |
 | 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist |
 | 7 | Registration simulation | Not started |
-| 8 | Lattice demonstration | **PoC done** — A/B/C/D coupons, watertight, connected |
+| 8 | Lattice demonstration | **PoC done** + **physics**: measured stiffness law, Winkler contact, A/B/C/D compared |
 | 9 | Integrated demo | Not started |
 
 ---
