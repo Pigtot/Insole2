@@ -37,8 +37,9 @@ patched two upstream bugs. Result: **14/14 Foot3D scans at 2.93 mm median chamfe
 474 real photographs in 3.2 minutes, with the neural stage **20× faster on MPS**
 and numerically identical to CPU (3.2e-6).
 
-**Physics.** Measured lattice stiffness by numerical compression test
-(**E\*/Es = 0.862·ρ^1.713**, R² = 0.997), built a Winkler contact model, and used
+**Physics.** Derived a lattice stiffness law by *numerical* compression test
+(**E\*/Es = 0.862·ρ^1.713**, R² = 0.997 — **simulated, not measured**: nothing
+physical was compressed), built a Winkler contact model, and used
 them to answer the stiffen-vs-soften question the project had been carrying
 unresolved since the start.
 
@@ -236,12 +237,15 @@ lost a commit. Separate steps are slower to type and much faster to debug.
 
 ## 6. Where the project actually stands
 
-**Measured:** dataset audit; video → loading (+0.514, 22/22 participants); photos →
-3D foot (2.93 mm, 14/14 scans); camera estimation costs ~7×; lattice stiffness law.
+**Measured:** dataset audit; video → loading (+0.514, 22/22 participants), and
+that its skill is real for heel-vs-forefoot but **absent for medial-lateral**;
+photos → 3D foot (2.93 mm, 14/14 scans); camera estimation costs ~7×.
 
-**Simulated:** the insole optimum. Softening under high pressure lowers peak
-pressure; the effect only matters when the insole is nearly as compliant as plantar
-tissue; Shore 60A beats Shore 95A by 25%.
+**Simulated:** the lattice stiffness law — reclassified from "measured" in
+[evidence.md](evidence.md), because the compression test was numerical — and the
+insole optimum built on it. Softening under high pressure lowers peak pressure;
+the effect only matters when the insole is nearly as compliant as plantar tissue;
+Shore 60A beats Shore 95A by 25%.
 
 **Not validated at all:** anything about a real foot. No printed part, no pressure
 sensor, no human testing.

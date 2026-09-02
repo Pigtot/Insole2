@@ -7,6 +7,8 @@
 envs/core/bin/python scripts/extract_pose.py --clips-per-cell 3 --stride 3
 envs/core/bin/python scripts/train_pressure_baseline.py --features pose --frame-stride 1
 envs/core/bin/python scripts/evaluate_pressure_model.py --tag pose
+envs/core/bin/python scripts/evaluate_loso.py --features pose --max-clips-per-participant 10
+envs/core/bin/python scripts/evaluate_spatial_ladder.py --max-clips-per-participant 10
 ```
 
 ---
@@ -130,22 +132,104 @@ P13. Reporting the mean alone would hide that.
 
 ![leave-one-subject-out](outputs/loso_pose.png)
 
+## Where does the skill actually come from? A spatial-resolution ladder
+
+```bash
+envs/core/bin/python scripts/evaluate_spatial_ladder.py --max-clips-per-participant 10
+```
+
+**+0.514 on 64 channels does not mean the model knows where load sits.** Two very
+different models score well on that metric:
+
+- **(a)** the model resolves *where* the load is, or
+- **(b)** the model only tracks *how much* total load there is, and spreads it in
+  the average pattern.
+
+Total load explains most of the variance in every channel at once, so (b) scores
+well per-sensor, per-region, and on correlation. **No metric reported above can
+tell (a) from (b).** That matters directly: the insole design in Milestone 9
+grades material by *location*, so it depends entirely on (a) being true.
+
+### Method
+
+For a spatial contrast (heel vs forefoot, medial vs lateral) score two things:
+
+| | what it asks | baseline |
+| --- | --- | --- |
+| **absolute** | how much load is on side A? | training-set mean load |
+| **share** | what *fraction* of A+B is on A? | training-set mean share |
+
+Dividing total load out is what separates the hypotheses: model (b) predicts a
+near-constant share and scores ~0.0 however well it does on absolute. This is
+asserted directly in `tests/test_spatial_ladder.py`, where a synthetic total-load-only
+model must score >0.3 absolute and <0.05 share, or the metric is not trusted.
+
+**Null control:** 10 arbitrary 16/16 sensor partitions with no anatomical meaning.
+These do *not* score zero — an arbitrary split still mixes heel and forefoot
+sensors, so it inherits whatever proximal–distal signal exists. The control
+measures how much skill leaks through a meaningless boundary, which is the bar an
+anatomical axis has to clear. Each contrast is compared against controls computed
+**on the same participant**, because folds differ a lot in difficulty.
+
+### Result — 22 folds, participant-disjoint
+
+| contrast | absolute | **share** | beats own-fold null | sign test |
+| --- | --- | --- | --- | --- |
+| left vs right foot | +0.659 ± 0.129 | **+0.734 ± 0.120** | 22/22 | p = 4.8e-07 |
+| heel vs forefoot | +0.311 ± 0.156 | **+0.364 ± 0.136** | 22/22 | p = 4.8e-07 |
+| medial vs lateral | +0.300 ± 0.211 | **+0.135 ± 0.119** | **4/22** | p = 4.3e-03 |
+| *null control* | *+0.158 ± 0.269* | *+0.213 ± 0.286* | — | — |
+
+**The model has proximal–distal resolution and essentially no medial–lateral
+resolution.**
+
+Medial vs lateral looks respectable at +0.135 and is positive in 18 of 22 folds —
+which, reported alone, would read as a modest success. Against its own null it
+**loses in 18 of 22 folds**, median margin −0.076. An arbitrary sensor partition
+predicts the medial/lateral split *better* than the anatomical one does. The
+absolute column is the trap: at +0.300 it is indistinguishable from heel/forefoot,
+because both are dominated by total load.
+
+The mechanism is visible in the spread. On P1, the true medial share varies with
+sd 0.083 and the predicted share with sd 0.043 — the model is compressing toward a
+constant, which is model (b). For heel/forefoot the same numbers are 0.243 and
+0.197, much closer to tracking the real variation.
+
+### What this changes
+
+1. **The heel/forefoot grading in Milestone 9 is supported by evidence.** Peak
+   pressure differences along the heel→toe axis are something the model can see.
+2. **Any medial/lateral grading would not be.** That is the axis that matters for
+   pronation, supination and arch support — so a *pressure-informed* insole built
+   on this model can justify longitudinal grading only.
+3. **A published +0.514 without this check would have been misleading**, not by
+   being wrong, but by being read as spatial when part of it is not.
+
+Midfoot (3 sensors) is excluded from heel-vs-forefoot: it is neither, and folding
+it into a side would blur the contrast. Frames where both feet are near-airborne
+are dropped from every share (denominator < 200 counts), since the ratio there is
+noise, not anatomy.
+
 ## Honest limits
 
-1. **Amplitude is compressed.** Even gated, the total-load slope is 0.46 against
+1. **There is no medial-lateral resolution.** The model resolves heel vs
+   forefoot but loses to an arbitrary sensor partition on medial vs lateral
+   (4/22 folds, p = 4.3e-03). Longitudinal grading is supported; transverse
+   grading is not. See the spatial-resolution ladder above.
+2. **Amplitude is compressed.** Even gated, the total-load slope is 0.46 against
    a true 1.0: the model tracks *when* load happens far better than *how much*.
-2. **It is not a missing calibration constant.** Applying the optimal linear
+3. **It is not a missing calibration constant.** Applying the optimal linear
    rescale to the total-load prediction changes MAE by −1 %. The residual is
    genuine per-frame error.
-3. **Four participants are much weaker than the rest** (+0.22…+0.37 against
+4. **Four participants are much weaker than the rest** (+0.22…+0.37 against
    +0.45…+0.63). The cause is unknown. Until it is understood, the mean should be
    quoted with its spread, never alone.
-4. **Slow cadence is hardest** (SP +0.410 vs NP +0.504) — plausibly because slower
+5. **Slow cadence is hardest** (SP +0.410 vs NP +0.504) — plausibly because slower
    walking gives smaller, slower limb excursions.
-5. **This is not plantar-surface estimation.** Participants are shod and the sole
+6. **This is not plantar-surface estimation.** Participants are shod and the sole
    is never visible. The model relates *limb kinematics* to loading — the
    UnderPressure premise, not the PressureVision one.
-6. **Pose extraction throughput fell** from 9.6 to 2.0 fps over 105 minutes,
+7. **Pose extraction throughput fell** from 9.6 to 2.0 fps over 105 minutes,
    consistent with thermal throttling under sustained MPS load. Budget for it.
 
 ## What this justifies next

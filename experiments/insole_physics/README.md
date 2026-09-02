@@ -26,7 +26,9 @@ prefactor by 30% — see [physics_model.md](../../docs/physics_model.md).
 
 ## 2. The result
 
-Driven by a **real measured** pressure field (P1/FP/1 left foot, peak-load frame)
+Driven by a **real measured** pressure field (P1/FP/1 left foot, **per-sensor
+peak over the gait cycle** -- see 'The bug that mattered' below; the single
+peak-load *frame* was the original behaviour and is wrong for insole design)
 and the **real plantar profile** of the FIND template. Every design carries 700 N
 through the same centre of pressure, so only the distribution can differ.
 

@@ -99,6 +99,7 @@ printability constraint, not a taste parameter.
 | Document | Contents |
 | --- | --- |
 | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | What runs on MPS, CPU, external tools |
+| [docs/evidence.md](docs/evidence.md) | **Every claim, labelled; the error budget; what is not proven** |
 | [docs/sources.md](docs/sources.md) | Every external resource, verified against provider APIs |
 | [docs/pressurevision_to_foot.md](docs/pressurevision_to_foot.md) | What transfers from PressureVision++, what does not |
 | [docs/lattice_stack_decision.md](docs/lattice_stack_decision.md) | Why an in-house implicit engine instead of nTop |

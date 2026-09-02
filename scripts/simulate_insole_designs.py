@@ -79,8 +79,8 @@ def measured_pressure_field(clip_key: str, side: str, grid, aggregate: str = "pe
     instant of peak *total* load is push-off, when the heel is already airborne,
     so the heel reads as unloaded and a soften mapping hands it the **stiffest**
     material in the insole -- despite the heel taking the highest pressure of the
-    whole gait cycle at heel strike. Either aggregate over the cycle instead and
-    the heel correctly becomes the softest region.
+    whole gait cycle at heel strike. Aggregating over the cycle instead makes the
+    heel correctly become the softest region.
     """
     p, c, k = clip_key.split("/")
     clip = InsoleGaitRite().get(p, c, k)
