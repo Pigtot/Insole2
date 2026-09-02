@@ -36,6 +36,18 @@ def _superscript(x: float) -> str:
     return "\u03c1" + _sup(x)
 
 
+def _png_size(path: Path) -> tuple[int, int]:
+    """Read a PNG's dimensions from its IHDR header -- no image library needed."""
+    try:
+        with path.open("rb") as fh:
+            head = fh.read(24)
+        if head[:8] != b"\x89PNG\r\n\x1a\n":
+            return (0, 0)
+        return (int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big"))
+    except Exception:
+        return (0, 0)
+
+
 def _load(rel: str):
     try:
         return json.loads((REPO / rel).read_text())
@@ -154,6 +166,12 @@ def build_payload() -> dict:
              title="Which filament",
              caption="Softer printable TPU wins. No foam required."),
     ]
+
+    # Attach real pixel dimensions so the page can reserve exact space for each
+    # figure. The images are lazy-loaded, and without a reserved box the layout
+    # shifts as each one arrives.
+    for f in figures:
+        f["w"], f["h"] = _png_size(REPO / f["src"].lstrip("/"))
 
     return dict(metrics=metrics, stages=stages, filaments=filaments, figures=figures,
                 demo=demo, generated_from="experiment JSON on disk")
