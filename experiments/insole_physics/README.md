@@ -118,12 +118,51 @@ charging the whole indentation to the insole (which the first implementation did
 hides bottoming out entirely — no design registered as bottomed and the optimum
 ran away to zero stiffness again.
 
+### Which filament? (the buildable version of the answer)
+
+The optimiser above reports a **base-material** modulus of 1.5 MPa, which reads as
+"use foam". For a printed part that is the wrong frame. What matters is the
+**effective** modulus of the printed lattice, and a soft filament at low density
+reaches the same place: the optimum's effective modulus is **0.304 MPa**, which
+needs only a **5.6 MPa** filament at the printability floor (rho = 0.20).
+
+Re-running the search over real TPU grades only, with rho >= 0.20 and a wearable
+14 mm thickness cap (`scripts/optimize_filament_insole.py`):
+
+| Shore A | bulk modulus | best peak | vs 95A | printability |
+| --- | --- | --- | --- | --- |
+| **60A** | 3.6 MPa | **137 kPa** | **-25%** | very soft TPE, direct drive, slow, hard |
+| 70A | 5.5 MPa | 151 kPa | -18% | soft TPU/TPE, direct drive, slow |
+| 75A | 7.1 MPa | 157 kPa | -14% | direct drive |
+| 80A | 9.4 MPa | 163 kPa | -11% | soft TPU |
+| 85A | 13.2 MPa | 169 kPa | -8% | commonly recommended for insoles |
+| 90A | 20.8 MPa | 176 kPa | -4% | easy |
+| 95A | 43.8 MPa | 183 kPa | — | the usual default, easiest |
+
+![filament choice](outputs/filament_choice.png)
+
+**Every grade is printable — no foam needed.** Within printable grades the
+relationship is monotonic: softer is always better, so there is no interior
+optimum in this dimension and the choice is a straight trade against print
+difficulty. 70-80A looks like the sensible compromise (11-18% better than the
+default, still printable on a direct-drive extruder); 60A buys 25% but is
+genuinely awkward to print.
+
+Two things to note about the shape of the answer. Every grade wants the **same**
+lattice settings — thickness at the 14 mm cap and density at the sparsest offered
+(rho_max 0.35) — so the optimum sits at the edge of the searched box in both. And
+Shore hardness was converted to modulus with **Gent's empirical relation**, which
+carries ~+/-30% scatter and ignores print anisotropy. A compression test on a
+printed coupon would replace that conversion, and is the cheapest experiment
+available here.
+
 ### What this means for the build
 
 Thicker helps, because it lets you go softer before bottoming out. But the
-dominant variable is the **material**, not the lattice grading: moving from 40 MPa
-TPU to a ~1.5-2.5 MPa foam-like base is worth ~40%, while the grading law is worth
-a few percent on top. Grading is the refinement; material choice is the decision.
+dominant variable is the **material**, not the lattice grading. In printable terms
+that means the filament grade: Shore 60A over 95A is worth 25%, while the grading
+law is worth a few percent on top. Grading is the refinement; filament choice is
+the decision.
 
 ## 4. How a null result turned into a finding
 
