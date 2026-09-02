@@ -67,6 +67,8 @@ def main() -> int:
     ap.add_argument("--side", default="left", choices=["left", "right"])
     ap.add_argument("--grid", type=int, nargs=2, default=[24, 56])
     ap.add_argument("--load-n", type=float, default=700.0)
+    ap.add_argument("--aggregate", default="peak", choices=["peak", "pti", "frame"],
+                    help="how to reduce the clip to one pressure field")
     ap.add_argument("--resolution", type=int, default=5, help="voxels per lattice cell")
     ap.add_argument("--cell-size", type=float, default=8.0)
     ap.add_argument("--rim-mm", type=float, default=2.5)
@@ -87,10 +89,11 @@ def main() -> int:
     grid = tuple(args.grid)
 
     # 1 -- measured pressure, lifted into the canonical plantar frame
-    field, clip_key, frame = measured_pressure_field(args.clip, args.side, grid)
+    field, clip_key, frame = measured_pressure_field(args.clip, args.side, grid,
+                                                     aggregate=args.aggregate)
     measured = np.nan_to_num(np.asarray(field.masked(), dtype=float), nan=0.0)
     norm = normalise_pressure(measured)
-    print(f"1. pressure   {clip_key} {args.side}, peak-load frame {frame}, "
+    print(f"1. pressure   {clip_key} {args.side}, {frame}, "
           f"{measured.max():.0f} counts peak")
 
     # 2 -- foot outline and profile from the FOCUS/FIND sole surface

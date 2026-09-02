@@ -63,15 +63,40 @@ def load_calibration(path: Path) -> GibsonAshby:
                        r_squared=f["r_squared"])
 
 
-def measured_pressure_field(clip_key: str, side: str, grid):
-    """Peak-load instant of a real walking clip, lifted to canonical coordinates."""
+def measured_pressure_field(clip_key: str, side: str, grid, aggregate: str = "peak"):
+    """A real walking clip's plantar loading, lifted to canonical coordinates.
+
+    ``aggregate`` decides what "the" pressure field means, and it matters more
+    than it looks:
+
+    * ``peak`` -- per-sensor maximum over the clip. **The default, and the
+      biomechanically correct one.**
+    * ``pti``  -- pressure-time integral (mean over the clip), the other standard
+      clinical measure. Weights how long a region is loaded, not just how hard.
+    * ``frame`` -- the single instant of greatest total load.
+
+    ``frame`` was the original behaviour and it is wrong for insole design. The
+    instant of peak *total* load is push-off, when the heel is already airborne,
+    so the heel reads as unloaded and a soften mapping hands it the **stiffest**
+    material in the insole -- despite the heel taking the highest pressure of the
+    whole gait cycle at heel strike. Either aggregate over the cycle instead and
+    the heel correctly becomes the softest region.
+    """
     p, c, k = clip_key.split("/")
     clip = InsoleGaitRite().get(p, c, k)
     arr = clip.pressure(side, baseline_correct=True)
     frame = int(arr.sum(1).argmax())
+    if aggregate == "peak":
+        vec, label = arr.max(axis=0), "per-sensor peak over the clip"
+    elif aggregate == "pti":
+        vec, label = arr.mean(axis=0), "pressure-time integral over the clip"
+    elif aggregate == "frame":
+        vec, label = arr[frame], f"single frame {frame} (peak total load)"
+    else:
+        raise ValueError(f"unknown aggregate {aggregate!r}")
     smap = load_sensor_map(side)
-    field = lift_to_canonical(arr[frame], smap, grid=grid)
-    return field, clip.key, frame
+    field = lift_to_canonical(vec, smap, grid=grid)
+    return field, clip.key, label
 
 
 def plantar_profile(grid) -> np.ndarray:

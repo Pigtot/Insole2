@@ -160,6 +160,14 @@ def build_payload() -> dict:
     ]
 
     figures = [
+        dict(src="/experiments/focus_baseline/focus_explained.png",
+             title="How FOCUS builds the foot mesh",
+             caption="Real photographs -> mask, dense TOC correspondences and normals, "
+                     "fused across 33 views into a mesh 1.87 mm from the ground-truth scan."),
+        dict(src="/experiments/pressure_baseline/heatmap_and_decisions.png",
+             title="Heat map, decision rule, biomechanics",
+             caption="32 predicted values become a display heat map, and the rule that "
+                     "sets material density - including the frame-selection bug it exposed."),
         dict(src="/experiments/pipeline_summary.png", title="Pipeline overview",
              caption="Every stage, colour-coded by evidence status."),
         dict(src="/experiments/integrated_demo/pipeline_demo.png", title="End to end",

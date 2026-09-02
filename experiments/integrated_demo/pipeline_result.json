@@ -7,9 +7,9 @@
     "source": "scripts/optimize_insole.py"
   },
   "pressure_source": {
-    "clip": "P3/NP/1",
-    "side": "right",
-    "frame": 81,
+    "clip": "P1/FP/1",
+    "side": "left",
+    "frame": "per-sensor peak over the clip",
     "units": "raw sensor counts"
   },
   "foot": {
@@ -19,18 +19,18 @@
   "stiffness_law": "E*/Es = 0.862 * rho^1.713  (R^2=0.9971, mixed)",
   "contact": {
     "stiffness_ratio_insole_over_tissue": NaN,
-    "bottomed_fraction": 0.0,
-    "peak_pressure_kpa": 113.79514864843992,
-    "p95_pressure_kpa": 102.22543174452287,
-    "mean_pressure_kpa": 54.82517482517482,
-    "contact_area_cm2": 127.67857142857144,
-    "contact_cells": 660,
-    "total_force_n": 700.0000000000001,
+    "bottomed_fraction": 0.012413793103448275,
+    "peak_pressure_kpa": 204.279214140461,
+    "p95_pressure_kpa": 90.17384159886399,
+    "mean_pressure_kpa": 49.909814323607414,
+    "contact_area_cm2": 140.2529761904762,
+    "contact_cells": 725,
+    "total_force_n": 699.9999999999999,
     "applied_load_n": 700.0,
     "force_error_pct": 1.6240976817373718e-14,
-    "cop_u": 10.845952672574361,
-    "cop_v": 34.20766204144156,
-    "indentation_max_mm": 16.517222216302677,
+    "cop_u": 11.258631302402142,
+    "cop_v": 25.476135493959234,
+    "indentation_max_mm": 15.887951464980274,
     "converged": true
   },
   "geometry": {
@@ -55,19 +55,19 @@
       162,
       12
     ],
-    "relative_density_voxel_count": 0.508,
-    "relative_density_from_mesh_volume": 0.2919,
+    "relative_density_voxel_count": 0.4261,
+    "relative_density_from_mesh_volume": 0.1869,
     "thickness_min": 0.311,
-    "thickness_max": 0.8202,
-    "n_vertices": 106132,
-    "n_faces": 228032,
+    "thickness_max": 0.691,
+    "n_vertices": 61700,
+    "n_faces": 125820,
     "watertight": true,
     "n_disconnected_components": 1,
     "connected": true,
-    "n_boundary_fragments_removed": 1508,
-    "discarded_fragment_mm3": 379.86,
-    "volume_mm3": 151802.44559432022
+    "n_boundary_fragments_removed": 3661,
+    "discarded_fragment_mm3": 3950.224,
+    "volume_mm3": 97208.28589324672
   },
-  "stl": "experiments/integrated_demo/insole_P3_NP_1_right.stl",
-  "elapsed_s": 1.4
+  "stl": "experiments/integrated_demo/insole_P1_FP_1_left.stl",
+  "elapsed_s": 1.7
 }
