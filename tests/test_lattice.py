@@ -171,3 +171,59 @@ def test_normalise_uses_a_shared_reference_so_designs_are_comparable():
 
 def test_normalise_handles_an_all_zero_field():
     assert np.all(normalise_pressure(np.zeros(5)) == 0)
+
+
+# --- foot-shaped insole ---------------------------------------------------
+def _footprint(shape=(16, 36)):
+    nu, nv = shape
+    u, v = np.meshgrid(np.linspace(-1, 1, nu), np.linspace(0, 1, nv), indexing="ij")
+    return (u ** 2 / (0.85 - 0.35 * np.cos(np.pi * v)) ** 2) < 1
+
+
+def test_insole_lattice_is_clipped_to_the_footprint():
+    """A rectangular block would waste material and be the wrong part."""
+    from visole.lattice.implicit import generate_insole_lattice
+
+    fp = _footprint()
+    lat = generate_insole_lattice(fp, np.full(fp.shape, 0.6), resolution=4)
+    block = generate_insole_lattice(np.ones_like(fp), np.full(fp.shape, 0.6), resolution=4)
+    assert lat.mesh.volume < block.mesh.volume
+
+
+def test_insole_lattice_is_watertight_and_connected_with_a_rim():
+    from visole.lattice.implicit import generate_insole_lattice
+
+    fp = _footprint()
+    lat = generate_insole_lattice(fp, np.full(fp.shape, 0.6), resolution=4, rim_mm=2.5)
+    assert lat.watertight
+    assert lat.n_components == 1
+
+
+def test_graded_thickness_changes_insole_density():
+    from visole.lattice.implicit import generate_insole_lattice
+
+    fp = _footprint()
+    thin = generate_insole_lattice(fp, np.full(fp.shape, 0.35), resolution=4)
+    thick = generate_insole_lattice(fp, np.full(fp.shape, 0.85), resolution=4)
+    assert thick.relative_density > thin.relative_density
+
+
+def test_substantial_components_are_never_silently_discarded():
+    """A shelled part is a sealed box: marching cubes emits an inner AND an outer
+    surface. Dropping the 'second component' there would destroy the geometry."""
+    from visole.lattice.implicit import generate_insole_lattice
+
+    fp = _footprint()
+    shelled = generate_insole_lattice(fp, np.full(fp.shape, 0.6), resolution=4,
+                                      rim_mm=2.5, shell_mm=1.5)
+    assert shelled.discarded_fragment_mm3 == 0.0
+    assert shelled.mesh.volume > 0
+
+
+def test_insole_rejects_mismatched_inputs():
+    from visole.lattice.implicit import generate_insole_lattice
+
+    with pytest.raises(ValueError):
+        generate_insole_lattice(_footprint(), np.zeros((4, 4)), resolution=4)
+    with pytest.raises(ValueError):
+        generate_insole_lattice(np.zeros((8, 8), bool), np.full((8, 8), 0.6), resolution=4)

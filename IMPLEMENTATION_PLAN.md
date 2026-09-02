@@ -63,9 +63,9 @@ OOM. Never disable MPS memory limits.
 | 4 | FOCUS inference | **Done** — 14/14 Foot3D scans, median **2.93 mm** *with given cameras*; **14.1 mm** when COLMAP estimates them (Phase D) |
 | 5 | MapAnything comparator | Optional, after 4 |
 | 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist |
-| 7 | Registration simulation | Not started |
+| 7 | Registration simulation | **Done** — pressure lifted to the canonical frame and onto the FIND sole surface |
 | 8 | Lattice demonstration | **PoC done** + **physics**: measured stiffness law, Winkler contact, A/B/C/D compared |
-| 9 | Integrated demo | Not started |
+| 9 | Integrated demo | **Done** — `scripts/run_visole_pipeline.py`: measured pressure -> printable insole STL in 2 s |
 
 ---
 

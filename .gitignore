@@ -49,3 +49,4 @@ experiments/focus_baseline/predictions*/
 experiments/focus_baseline/sfm_run*/
 experiments/focus_baseline/synthetic/*_rgb/
 experiments/focus_baseline/synthetic/*_run/
+experiments/integrated_demo/*.stl

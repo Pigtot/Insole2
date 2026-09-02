@@ -33,9 +33,15 @@ import numpy as np
 
 TWO_PI = 2.0 * np.pi
 
+#: A disconnected island larger than this fraction of the main body is NOT
+#: discarded automatically -- it is probably real structure (e.g. the inner
+#: surface of a shelled part), and deleting it would silently ruin the geometry.
+MAX_DISCARDABLE_FRACTION = 0.05
+
 __all__ = [
     "gyroid", "schwarz_p", "schwarz_d", "TPMS_FUNCTIONS",
-    "GradedLattice", "generate_graded_tpms", "calibrate_density_vs_thickness",
+    "GradedLattice", "generate_graded_tpms", "generate_insole_lattice",
+    "calibrate_density_vs_thickness",
 ]
 
 
@@ -76,6 +82,9 @@ class GradedLattice:
     watertight: bool
     n_components: int = 1
     n_fragments_removed: int = 0
+    #: Volume of disconnected islands discarded so the part is printable. Nonzero
+    #: means real material was thrown away -- worth looking at, not ignoring.
+    discarded_fragment_mm3: float = 0.0
 
     @property
     def bounding_volume_mm3(self) -> float:
@@ -116,6 +125,7 @@ class GradedLattice:
             "n_disconnected_components": int(self.n_components),
             "connected": bool(self.n_components == 1),
             "n_boundary_fragments_removed": int(self.n_fragments_removed),
+            "discarded_fragment_mm3": round(self.discarded_fragment_mm3, 3),
             "volume_mm3": float(self.mesh.volume) if self.watertight else None,
         }
 
@@ -239,6 +249,131 @@ def _drop_negligible_fragments(mesh, rel_volume: float = 1e-3):
     import trimesh
 
     return trimesh.util.concatenate(keep), len(parts) - len(keep)
+
+
+def generate_insole_lattice(footprint: np.ndarray, thickness_field: np.ndarray, *,
+                            length_mm: float = 260.0, width_mm: float = 100.0,
+                            height_mm: float = 20.0, cell_size_mm: float = 8.0,
+                            resolution: int = 6, topology: str = "gyroid",
+                            shell_mm: float = 0.0, rim_mm: float = 2.5,
+                            keep_largest_component: bool = True):
+    """Graded lattice clipped to a real foot outline, not a rectangular block.
+
+    ``footprint`` is a boolean (nu, nv) mask of which canonical plantar cells are
+    actually under the foot -- roughly a third of the canonical rectangle is
+    corner space outside the outline, and filling it would waste material and
+    make the part wrong. ``thickness_field`` is the matching level-set thickness
+    per cell, from the pressure mapping.
+
+    Both are supplied on the canonical grid and resampled onto the voxel grid, so
+    the geometry inherits exactly the pressure map the rest of the pipeline used.
+    """
+    from skimage import measure
+
+    fp = np.asarray(footprint, dtype=bool)
+    tf = np.asarray(thickness_field, dtype=float)
+    if fp.shape != tf.shape:
+        raise ValueError(f"footprint {fp.shape} and thickness {tf.shape} must match")
+    if not fp.any():
+        raise ValueError("empty footprint")
+
+    nx = max(8, int(round(width_mm / cell_size_mm * resolution)))
+    ny = max(8, int(round(length_mm / cell_size_mm * resolution)))
+    nz = max(4, int(round(height_mm / cell_size_mm * resolution)))
+
+    # Nearest-neighbour resample of the canonical grid onto the voxel grid.
+    ui = np.clip((np.arange(nx) / max(nx - 1, 1) * (fp.shape[0] - 1)).round().astype(int),
+                 0, fp.shape[0] - 1)
+    vi = np.clip((np.arange(ny) / max(ny - 1, 1) * (fp.shape[1] - 1)).round().astype(int),
+                 0, fp.shape[1] - 1)
+    mask2d = fp[np.ix_(ui, vi)]
+    t2d = tf[np.ix_(ui, vi)]
+
+    xs = np.linspace(0.0, width_mm, nx)
+    ys = np.linspace(0.0, length_mm, ny)
+    zs = np.linspace(0.0, height_mm, nz)
+    X, Y, Z = np.meshgrid(xs, ys, zs, indexing="ij")
+    k = TWO_PI / cell_size_mm
+    field = np.abs(TPMS_FUNCTIONS[topology](k * X, k * Y, k * Z))
+
+    solid = field < t2d[:, :, None]
+    solid &= mask2d[:, :, None]
+
+    # A solid rim around the outline. Clipping a periodic lattice to a foot shape
+    # shears the boundary cells into slivers that are connected to nothing -- a
+    # smoke test produced 30 disconnected fragments. A perimeter wall ties them
+    # all in, and is what a real insole would have anyway for edge durability.
+    if rim_mm > 0:
+        from scipy import ndimage
+
+        px = max(1, int(round(rim_mm / width_mm * nx)))
+        eroded = ndimage.binary_erosion(mask2d, np.ones((2 * px + 1, 2 * px + 1), bool))
+        rim = mask2d & ~eroded
+        solid |= rim[:, :, None]
+
+    if shell_mm > 0:  # solid skin on the top and bottom faces
+        n_shell = max(1, int(round(shell_mm / height_mm * nz)))
+        solid[:, :, :n_shell] |= mask2d[:, :, None]
+        solid[:, :, -n_shell:] |= mask2d[:, :, None]
+
+    F = np.where(solid, -1.0, 1.0)
+    Fp = np.pad(F, 1, mode="constant", constant_values=1.0)
+    spacing = (width_mm / (nx - 1), length_mm / (ny - 1), height_mm / (nz - 1))
+    verts, faces, normals, _ = measure.marching_cubes(Fp, level=0.0, spacing=spacing)
+    verts -= np.asarray(spacing)
+
+    import trimesh
+
+    mesh = trimesh.Trimesh(vertices=verts, faces=faces, vertex_normals=normals,
+                           process=True)
+    mesh.remove_unreferenced_vertices()
+    mesh, removed = _drop_negligible_fragments(mesh)
+
+    # Clipping to a foot outline can still leave a genuinely disconnected island
+    # that is too large to call negligible (a smoke test left one of 190 mm^3
+    # against 144,000 mm^3 -- 0.13%, just over the auto-drop threshold). Floating
+    # material must not go to a printer, so it is removed explicitly and the
+    # discarded volume is REPORTED rather than the threshold being widened until
+    # the problem disappears.
+    discarded_mm3 = 0.0
+    kept_back = 0
+    if keep_largest_component:
+        try:
+            parts = mesh.split(only_watertight=False)
+            if len(parts) > 1:
+                parts = sorted(parts, key=lambda m: abs(float(m.volume)), reverse=True)
+                biggest = abs(float(parts[0].volume))
+                # NEVER silently delete substantial geometry. A solid top/bottom
+                # skin seals the insole into a closed box, so marching cubes emits
+                # an inner *and* an outer surface; the "second component" is then
+                # comparable in size to the first and deleting it would destroy
+                # the part. Only genuinely small islands are dropped; anything
+                # larger is kept and surfaced through n_components.
+                small = [m for m in parts[1:]
+                         if abs(float(m.volume)) < MAX_DISCARDABLE_FRACTION * biggest]
+                large = [m for m in parts[1:] if m not in small]
+                discarded_mm3 = float(sum(abs(float(m.volume)) for m in small))
+                removed += len(small)
+                kept_back = len(large)
+                keep = [parts[0]] + large
+                mesh = keep[0] if len(keep) == 1 else trimesh.util.concatenate(keep)
+        except Exception:  # pragma: no cover
+            pass
+
+    try:
+        n_components = int(mesh.body_count)
+    except Exception:  # pragma: no cover
+        n_components = -1
+
+    return GradedLattice(
+        mesh=mesh, thickness_field=t2d,
+        discarded_fragment_mm3=discarded_mm3,
+        relative_density=float(solid.sum() / max(mask2d.sum() * nz, 1)),
+        bounds_mm=((0.0, width_mm), (0.0, length_mm), (0.0, height_mm)),
+        cell_size_mm=cell_size_mm, topology=topology, voxel_shape=(nx, ny, nz),
+        watertight=bool(mesh.is_watertight), n_components=n_components,
+        n_fragments_removed=removed,
+    )
 
 
 def calibrate_density_vs_thickness(thicknesses=None, topology: str = "gyroid",

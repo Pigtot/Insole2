@@ -1,0 +1,73 @@
+{
+  "note": "Geometry is real and printable. Every pressure figure in kPa is SIMULATED under the Winkler model; the measured insole data is in raw sensor counts and supplies only the load shape and COP. No claim is made that this insole improves anything on a real foot.",
+  "design": {
+    "base_modulus_mpa": 1.5,
+    "thickness_mm": 20.0,
+    "grading": "soften",
+    "source": "scripts/optimize_insole.py"
+  },
+  "pressure_source": {
+    "clip": "P1/FP/1",
+    "side": "left",
+    "frame": 190,
+    "units": "raw sensor counts"
+  },
+  "foot": {
+    "footprint_cells": 872,
+    "arch_height_mm": 33.665
+  },
+  "stiffness_law": "E*/Es = 0.862 * rho^1.713  (R^2=0.9971, mixed)",
+  "contact": {
+    "stiffness_ratio_insole_over_tissue": NaN,
+    "bottomed_fraction": 0.003003003003003003,
+    "peak_pressure_kpa": 108.23953873013484,
+    "p95_pressure_kpa": 101.92329524776139,
+    "mean_pressure_kpa": 54.331254331254314,
+    "contact_area_cm2": 128.83928571428572,
+    "contact_cells": 666,
+    "total_force_n": 699.9999999999998,
+    "applied_load_n": 700.0,
+    "force_error_pct": 3.2481953634747435e-14,
+    "cop_u": 11.698847439422739,
+    "cop_v": 35.259085865241616,
+    "indentation_max_mm": 16.237574110739843,
+    "converged": true
+  },
+  "geometry": {
+    "topology": "gyroid",
+    "bounds_mm": [
+      [
+        0.0,
+        100.0
+      ],
+      [
+        0.0,
+        260.0
+      ],
+      [
+        0.0,
+        20.0
+      ]
+    ],
+    "cell_size_mm": 8.0,
+    "voxel_shape": [
+      62,
+      162,
+      12
+    ],
+    "relative_density_voxel_count": 0.5037,
+    "relative_density_from_mesh_volume": 0.2839,
+    "thickness_min": 0.311,
+    "thickness_max": 0.8219,
+    "n_vertices": 100161,
+    "n_faces": 215714,
+    "watertight": true,
+    "n_disconnected_components": 1,
+    "connected": true,
+    "n_boundary_fragments_removed": 1704,
+    "discarded_fragment_mm3": 1291.805,
+    "volume_mm3": 147627.39398876255
+  },
+  "stl": "experiments/integrated_demo/insole_P1_FP_1_left.stl",
+  "elapsed_s": 1.5
+}

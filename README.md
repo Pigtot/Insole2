@@ -18,7 +18,7 @@ Research project for ISEF. Software phase, Apple Silicon, no physical hardware y
 | --- | --- |
 | Machine audit | Apple M1 Max, 64 GB, macOS 26.5.2, PyTorch 2.13.0, **MPS verified** |
 | Dataset | Insole-GAITRite, 22 participants, 794 clips, checksums verified |
-| Tests | **142 passing** |
+| Tests | **151 passing** |
 | FOCUS | **14/14** Foot3D scans, median **2.93 mm** with given cameras; **14.1 mm** when cameras are estimated |
 | Baselines | Pose kinematics: **+0.514 ± 0.119** skill vs mean predictor, **22/22** participants (leave-one-subject-out) |
 
