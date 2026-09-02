@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1500" width="1200" height="1500" font-family="ui-sans-serif, -apple-system, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4b5563"/>
+    </marker>
+    <style>
+      .t   { fill:#111827; font-size:16px; font-weight:650; }
+      .b   { fill:#374151; font-size:12.5px; }
+      .m   { fill:#374151; font-size:12.5px; font-family:ui-monospace, Menlo, monospace; }
+      .tag { fill:#6b7280; font-size:10.5px; font-weight:700; letter-spacing:.09em; }
+      .ln  { stroke:#4b5563; stroke-width:1.6; fill:none; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="1500" fill="#ffffff"/>
+
+  <text x="60" y="52" fill="#111827" font-size="27" font-weight="700">Visole — current architecture</text>
+  <text x="60" y="78" fill="#6b7280" font-size="14">RGB video and phone photos to a printable graded insole. Every box is code that exists and runs today.</text>
+  <line x1="60" y1="94" x2="1140" y2="94" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- ============ INPUTS ============ -->
+  <rect x="60" y="112" width="510" height="62" rx="6" fill="#ffffff" stroke="#111827" stroke-width="1.7"/>
+  <text x="78" y="137" class="t">RGB video</text>
+  <text x="78" y="158" class="b">fixed room camera · frame rate read per clip, never assumed</text>
+
+  <rect x="630" y="112" width="510" height="62" rx="6" fill="#ffffff" stroke="#111827" stroke-width="1.7"/>
+  <text x="648" y="137" class="t">Multi-view phone photos</text>
+  <text x="648" y="158" class="b">≥15 usable views · error vs log view count: r = −0.78</text>
+
+  <path class="ln" d="M 315 174 L 315 200" marker-end="url(#a)"/>
+  <path class="ln" d="M 885 174 L 885 200" marker-end="url(#a)"/>
+
+  <!-- ============ FROZEN NETWORKS ============ -->
+  <rect x="60" y="200" width="510" height="80" rx="6" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.4"/>
+  <text x="78" y="220" class="tag">FROZEN · DOWNLOADED</text>
+  <text x="78" y="243" class="t">Keypoint R-CNN · ResNet50-FPN</text>
+  <text x="78" y="264" class="b">COCO weights · 59.2 M params · 226 MB · 0.104 s/frame on MPS</text>
+
+  <rect x="630" y="200" width="510" height="80" rx="6" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.4"/>
+  <text x="648" y="220" class="tag">FROZEN · DOWNLOADED</text>
+  <text x="648" y="243" class="t">FOCUS TOC predictor + FIND</text>
+  <text x="648" y="264" class="b">released weights · 72.5 M + 1.27 M params · 283 MB</text>
+
+  <path class="ln" d="M 315 280 L 315 306" marker-end="url(#a)"/>
+  <path class="ln" d="M 885 280 L 885 306" marker-end="url(#a)"/>
+
+  <!-- ============ DETERMINISTIC / DERIVED ============ -->
+  <rect x="60" y="306" width="510" height="94" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="78" y="326" class="tag">HAND-WRITTEN · 0 PARAMETERS</text>
+  <text x="78" y="349" class="t">17 keypoints → 26 features</text>
+  <text x="78" y="369" class="b">ankles &amp; knees relative to hip midpoint, ÷ torso length;</text>
+  <text x="78" y="387" class="b">velocities, separations, detector scores · × 5 frames (−6…+6) = <tspan font-weight="700">130</tspan></text>
+
+  <rect x="630" y="306" width="510" height="94" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="648" y="326" class="tag">RECONSTRUCTED</text>
+  <text x="648" y="349" class="t">3D foot mesh</text>
+  <text x="648" y="369" class="b">14/14 Foot3D scans · median 2.93 mm with known cameras,</text>
+  <text x="648" y="387" class="b">14.1 mm when cameras are estimated from the photos</text>
+
+  <path class="ln" d="M 315 400 L 315 426" marker-end="url(#a)"/>
+  <path class="ln" d="M 885 400 L 885 452" marker-end="url(#a)"/>
+
+  <!-- ============ THE TRAINED MODEL ============ -->
+  <rect x="60" y="426" width="510" height="186" rx="6" fill="#eaf1fb" stroke="#1d4ed8" stroke-width="2.2"/>
+  <text x="78" y="447" class="tag" fill="#1d4ed8">TRAINED BY YOU · CLOSED FORM, NO GRADIENT DESCENT</text>
+  <text x="78" y="471" class="t" fill="#1e3a8a">18,458 parameters · 143 KB</text>
+
+  <rect x="76" y="484" width="478" height="52" rx="4" fill="#ffffff" stroke="#93b0e6" stroke-width="1.2"/>
+  <text x="90" y="503" class="b" font-weight="700">DIRECT</text>
+  <text x="90" y="523" class="m">standardize (130 μ, σ) → ridge W[131×64], α=10 → clip ≥ 0</text>
+
+  <rect x="76" y="544" width="478" height="56" rx="4" fill="#ffffff" stroke="#93b0e6" stroke-width="1.2"/>
+  <text x="90" y="563" class="b" font-weight="700">CONTACT-GATED · per foot</text>
+  <text x="90" y="583" class="m">logistic gate c × magnitude ridge W[131×32] · p = c ⊙ p̃</text>
+
+  <!-- right column continues -->
+  <rect x="630" y="452" width="510" height="74" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="648" y="472" class="tag">GEOMETRY</text>
+  <text x="648" y="495" class="t">FIND sole surface</text>
+  <text x="648" y="515" class="b">foot outline + plantar profile · arch height 33.7 mm</text>
+
+  <path class="ln" d="M 315 612 L 315 638" marker-end="url(#a)"/>
+
+  <!-- ============ PRESSURE OUTPUT ============ -->
+  <rect x="60" y="638" width="510" height="96" rx="6" fill="#ffffff" stroke="#111827" stroke-width="1.7"/>
+  <text x="78" y="663" class="t">64 channels of plantar loading</text>
+  <text x="78" y="684" class="b">left 32 + right 32 re-indexed into left numbering</text>
+  <text x="78" y="703" class="b" font-weight="700">baseline-corrected raw sensor counts — NOT kPa</text>
+  <text x="78" y="722" class="b">LOSO skill +0.514 ± 0.119 · 22/22 participants beat the mean</text>
+
+  <!-- convergence -->
+  <path class="ln" d="M 315 734 L 315 772"/>
+  <path class="ln" d="M 885 526 L 885 772"/>
+  <path class="ln" d="M 315 772 L 885 772"/>
+  <path class="ln" d="M 600 772 L 600 800" marker-end="url(#a)"/>
+
+  <!-- ============ REGISTRATION ============ -->
+  <rect x="60" y="800" width="1080" height="66" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="78" y="826" class="t">Registration</text>
+  <text x="78" y="848" class="b">pressure lifted into the canonical plantar frame, then onto the sole surface — one frame for both feet</text>
+
+  <path class="ln" d="M 600 866 L 600 892" marker-end="url(#a)"/>
+
+  <!-- ============ DESIGN + PHYSICS ============ -->
+  <rect x="60" y="892" width="1080" height="184" rx="6" fill="#fdf5e8" stroke="#b45309" stroke-width="1.8"/>
+  <text x="78" y="914" class="tag" fill="#b45309">DESIGN + SIMULATED PHYSICS</text>
+
+  <rect x="76" y="928" width="340" height="130" rx="4" fill="#ffffff" stroke="#e2c390" stroke-width="1.2"/>
+  <text x="92" y="952" class="t" font-size="15">Density mapping</text>
+  <text x="92" y="975" class="b">ρ(p), “soften” hypothesis —</text>
+  <text x="92" y="993" class="b">stiffen and soften both</text>
+  <text x="92" y="1011" class="b">implemented, choice recorded</text>
+  <text x="92" y="1035" class="m" font-size="12">printability floor ρ ≥ 0.19</text>
+
+  <rect x="430" y="928" width="340" height="130" rx="4" fill="#ffffff" stroke="#e2c390" stroke-width="1.2"/>
+  <text x="446" y="952" class="t" font-size="15">Stiffness law — measured</text>
+  <text x="446" y="977" class="m">E*/Es = 0.862 · ρ^1.713</text>
+  <text x="446" y="999" class="b">R² = 0.997, voxel→hex FEA</text>
+  <text x="446" y="1017" class="b">solid block recovers Es exactly</text>
+  <text x="446" y="1039" class="b">(solver validation)</text>
+
+  <rect x="784" y="928" width="340" height="130" rx="4" fill="#ffffff" stroke="#e2c390" stroke-width="1.2"/>
+  <text x="800" y="952" class="t" font-size="15">Winkler contact</text>
+  <text x="800" y="975" class="b">insole and tissue as springs</text>
+  <text x="800" y="993" class="b">in series · bottoming-out</text>
+  <text x="800" y="1011" class="b">→ peak pressure, COP,</text>
+  <text x="800" y="1029" class="b">contact area, bottomed %</text>
+
+  <path class="ln" d="M 600 1076 L 600 1102" marker-end="url(#a)"/>
+
+  <!-- ============ GEOMETRY GENERATION ============ -->
+  <rect x="60" y="1102" width="1080" height="82" rx="6" fill="#ffffff" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="78" y="1128" class="t">Gyroid TPMS field → marching cubes → watertight mesh</text>
+  <text x="78" y="1150" class="b">design parameters read from the optimiser over 295 candidates, not hardcoded:</text>
+  <text x="78" y="1169" class="m">base 1.5 MPa · thickness 20 mm · soften grading</text>
+
+  <path class="ln" d="M 600 1184 L 600 1210" marker-end="url(#a)"/>
+
+  <!-- ============ OUTPUT ============ -->
+  <rect x="60" y="1210" width="1080" height="78" rx="6" fill="#111827"/>
+  <text x="78" y="1240" fill="#ffffff" font-size="17" font-weight="700">Printable graded insole (STL) — measured pressure to printable geometry in ≈2 s</text>
+  <text x="78" y="1266" fill="#d1d5db" font-size="12.5">The geometry is real and printable. Every kPa figure is simulated under the Winkler model. Nothing is validated on a real foot.</text>
+
+  <!-- ============ LEGEND ============ -->
+  <line x1="60" y1="1322" x2="1140" y2="1322" stroke="#e5e7eb" stroke-width="1"/>
+  <rect x="60" y="1344" width="16" height="16" rx="3" fill="#ffffff" stroke="#111827" stroke-width="1.6"/>
+  <text x="84" y="1357" class="b">measured / input</text>
+  <rect x="228" y="1344" width="16" height="16" rx="3" fill="#eef1f5" stroke="#9aa5b1" stroke-width="1.4"/>
+  <text x="252" y="1357" class="b">frozen, downloaded</text>
+  <rect x="410" y="1344" width="16" height="16" rx="3" fill="#eaf1fb" stroke="#1d4ed8" stroke-width="1.8"/>
+  <text x="434" y="1357" class="b">trained by you</text>
+  <rect x="574" y="1344" width="16" height="16" rx="3" fill="#ffffff" stroke="#9ca3af" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <text x="598" y="1357" class="b">deterministic code</text>
+  <rect x="754" y="1344" width="16" height="16" rx="3" fill="#fdf5e8" stroke="#b45309" stroke-width="1.6"/>
+  <text x="778" y="1357" class="b">simulated physics</text>
+
+  <rect x="60" y="1390" width="1080" height="58" rx="6" fill="#f9fafb" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="78" y="1414" class="b" font-weight="700">You train 18,458 of 132,970,000 parameters in the pipeline — 0.014%.</text>
+  <text x="78" y="1435" class="b">The rest is pretrained and frozen. The trained model is linear by choice: 22 participants will not support more capacity without learning to recognise people.</text>
+</svg>
