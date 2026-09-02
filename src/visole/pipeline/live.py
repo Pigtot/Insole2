@@ -49,13 +49,15 @@ class Stage:
     detail: str = ""
     metrics: dict = field(default_factory=dict)
     preview: str | None = None
+    preview_w: int = 0
+    preview_h: int = 0
     seconds: float | None = None
     caveat: str | None = None
 
     def as_dict(self) -> dict:
         return {k: getattr(self, k) for k in
                 ("key", "title", "status", "detail", "metrics", "preview",
-                 "seconds", "caveat")}
+                 "preview_w", "preview_h", "seconds", "caveat")}
 
 
 class LivePipeline:
@@ -89,7 +91,11 @@ class LivePipeline:
         s.status = "done"
         s.detail = detail
         s.metrics = metrics or {}
-        s.preview = preview
+        if preview is not None:
+            s.preview = preview
+            s.preview_w, s.preview_h = self._dims(self.out / preview)
+        else:
+            s.preview = None
         s.caveat = caveat
         s.seconds = round(time.time() - t0, 1)
         self._emit()
@@ -100,10 +106,86 @@ class LivePipeline:
         s.seconds = round(time.time() - t0, 1)
         self._emit()
 
+    # Previews are rendered at 2x their display size so they stay sharp on a
+    # Retina panel, and photographs are written as JPEG -- a photographic frame
+    # as PNG was 375 KB where JPEG is ~40 KB for the same visible quality.
+    PREVIEW_DPI = 200
+    JPEG_QUALITY = 88
+
     def _fig(self, name: str):
         import matplotlib
         matplotlib.use("Agg")
         return self.out / f"{name}.png"
+
+    def _save_photo(self, name: str, bgr) -> Path:
+        """Write a photographic frame as JPEG at a sensible display width."""
+        import cv2
+
+        target_w = 1200
+        h, w = bgr.shape[:2]
+        if w > target_w:
+            bgr = cv2.resize(bgr, (target_w, int(h * target_w / w)),
+                             interpolation=cv2.INTER_AREA)
+        path = self.out / f"{name}.jpg"
+        cv2.imwrite(str(path), bgr, [cv2.IMWRITE_JPEG_QUALITY, self.JPEG_QUALITY])
+        return path
+
+    def _save_plot(self, fig, name: str) -> Path:
+        import matplotlib.pyplot as plt
+
+        path = self.out / f"{name}.png"
+        fig.savefig(path, dpi=self.PREVIEW_DPI, bbox_inches="tight", pad_inches=0.06)
+        plt.close(fig)
+        return path
+
+    @staticmethod
+    def _dims(path: Path) -> tuple[int, int]:
+        """Pixel size of a PNG or JPEG, read from the file header."""
+        try:
+            data = path.read_bytes()
+        except Exception:
+            return (0, 0)
+        if data[:8] == b"\x89PNG\r\n\x1a\n":
+            return (int.from_bytes(data[16:20], "big"),
+                    int.from_bytes(data[20:24], "big"))
+        if data[:2] == b"\xff\xd8":                      # JPEG: walk the segments
+            i = 2
+            while i < len(data) - 9:
+                if data[i] != 0xFF:
+                    i += 1
+                    continue
+                marker = data[i + 1]
+                if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+                              0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                    return (int.from_bytes(data[i + 7:i + 9], "big"),
+                            int.from_bytes(data[i + 5:i + 7], "big"))
+                i += 2 + int.from_bytes(data[i + 2:i + 4], "big")
+        return (0, 0)
+
+    def _plantar_plot(self, field, name: str, label: str, cmap: str):
+        """Plantar maps in a LANDSCAPE frame.
+
+        Rendered portrait these are ~0.52 aspect, and a fixed display height
+        squeezed them to 120 px wide -- too narrow to read. Pairing the map with
+        its colour bar and label in a landscape figure keeps the foot large while
+        the card stays a sensible shape.
+        """
+        import matplotlib.pyplot as plt
+
+        fig, (ax, cax) = plt.subplots(
+            1, 2, figsize=(4.6, 3.4), gridspec_kw={"width_ratios": [1, .06]})
+        im = ax.imshow(np.asarray(field, dtype=float).T, origin="lower",
+                       aspect="equal", cmap=cmap)
+        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_xlabel("medial → lateral", fontsize=8, color="#666")
+        ax.set_ylabel("heel → toe", fontsize=8, color="#666")
+        for sp in ax.spines.values():
+            sp.set_edgecolor("#ccc")
+        cb = fig.colorbar(im, cax=cax)
+        cb.set_label(label, fontsize=8, color="#666")
+        cb.ax.tick_params(labelsize=7)
+        fig.tight_layout()
+        return self._save_plot(fig, name)
 
     # -- stages -----------------------------------------------------------
     def run(self) -> list[Stage]:
@@ -136,10 +218,7 @@ class LivePipeline:
         cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, info.n_frames // 3))
         okf, frame = cap.read()
         cap.release()
-        prev = None
-        if okf:
-            prev = self._fig("00_video")
-            cv2.imwrite(str(prev), cv2.resize(frame, (640, int(640 * info.height / info.width))))
+        prev = self._save_photo("00_video", frame) if okf else None
         self._done(s, t0,
                    f"{info.width}×{info.height}, {info.fps:.1f} fps, {info.duration_s:.1f} s",
                    {"frames": info.n_frames, "fps": round(info.fps, 2)},
@@ -169,7 +248,7 @@ class LivePipeline:
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(seq.times[j] * info.fps))
         okf, frame = cap.read()
         cap.release()
-        prev = self._fig("01_pose")
+        prev = None
         if okf:
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             fig, ax = plt.subplots(figsize=(6, 6 * info.height / info.width))
@@ -183,13 +262,16 @@ class LivePipeline:
                 if good[a] and good[b]:
                     ax.plot(k[[a, b], 0], k[[a, b], 1], lw=2.2, c="#00e0a0", zorder=2)
             ax.axis("off")
-            fig.savefig(prev, dpi=110, bbox_inches="tight", pad_inches=0)
+            buf = self.out / "_pose_tmp.png"
+            fig.savefig(buf, dpi=self.PREVIEW_DPI, bbox_inches="tight", pad_inches=0)
             plt.close(fig)
+            prev = self._save_photo("01_pose", cv2.imread(str(buf)))
+            buf.unlink(missing_ok=True)
         rate = 100 * seq.detected.mean()
         self._done(s, t0, f"{int(seq.detected.sum())} of {len(seq.detected)} sampled "
                           f"frames had a person detected ({rate:.0f}%)",
                    {"frames": len(seq.detected), "detection_rate": round(rate, 1)},
-                   prev.name)
+                   prev.name if prev else None)
         return seq
 
     def _stage_features(self, seq):
@@ -238,8 +320,7 @@ class LivePipeline:
         ax.set_xlabel("frame"); ax.set_ylabel("total load\n(raw counts)", fontsize=9)
         ax.legend(fontsize=8, frameon=False); ax.grid(alpha=.25)
         fig.tight_layout()
-        prev = self._fig("03_pressure")
-        fig.savefig(prev, dpi=110); plt.close(fig)
+        prev = self._save_plot(fig, "03_pressure")
 
         self._done(s, t0,
                    f"Peak total load at frame {peak}. Units are raw sensor counts, not kPa.",
@@ -259,15 +340,8 @@ class LivePipeline:
         smap = load_sensor_map("left")
         field = lift_to_canonical(pred64[:32], smap, grid=self.grid)
         vals = np.nan_to_num(np.asarray(field.masked(), dtype=float), nan=0.0)
-        fig, ax = plt.subplots(figsize=(2.6, 5))
-        im = ax.imshow(vals.T, origin="lower", aspect="auto", cmap="magma")
-        ax.set_xticks([]); ax.set_yticks([])
-        ax.set_xlabel("medial → lateral", fontsize=8)
-        ax.set_ylabel("heel → toe", fontsize=8)
-        fig.colorbar(im, ax=ax, fraction=.05)
-        fig.tight_layout()
-        prev = self._fig("04_canonical")
-        fig.savefig(prev, dpi=110); plt.close(fig)
+        prev = self._plantar_plot(vals, "04_canonical", "predicted load (raw counts)",
+                                  "magma")
         self._done(s, t0, "32 predicted channels lifted onto a shared plantar grid.",
                    {"grid": f"{self.grid[0]}×{self.grid[1]}"}, prev.name)
         return vals
@@ -290,15 +364,8 @@ class LivePipeline:
         d2t = DensityToThickness(calibrate_density_vs_thickness())
         tfield = d2t(rho)
 
-        fig, ax = plt.subplots(figsize=(2.6, 5))
-        im = ax.imshow(np.where(footprint, rho, np.nan).T, origin="lower",
-                       aspect="auto", cmap="viridis")
-        ax.set_xticks([]); ax.set_yticks([])
-        ax.set_xlabel("medial → lateral", fontsize=8)
-        fig.colorbar(im, ax=ax, fraction=.05, label="relative density")
-        fig.tight_layout()
-        prev = self._fig("05_density")
-        fig.savefig(prev, dpi=110); plt.close(fig)
+        prev = self._plantar_plot(np.where(footprint, rho, np.nan), "05_density",
+                                  "relative density", "viridis")
         self._done(s, t0,
                    "Soften mapping: higher predicted pressure → lower lattice density.",
                    {"rho_min": round(float(rho[footprint].min()), 3),
@@ -329,15 +396,8 @@ class LivePipeline:
         sm = sol.summary()
         ok = sm["bottomed_fraction"] <= 0.02 and sol.converged
 
-        fig, ax = plt.subplots(figsize=(2.6, 5))
-        im = ax.imshow((sol.pressure_pa / 1e3).T, origin="lower", aspect="auto",
-                       cmap="magma")
-        ax.set_xticks([]); ax.set_yticks([])
-        ax.set_xlabel("medial → lateral", fontsize=8)
-        fig.colorbar(im, ax=ax, fraction=.05, label="kPa (simulated)")
-        fig.tight_layout()
-        prev = self._fig("06_contact")
-        fig.savefig(prev, dpi=110); plt.close(fig)
+        prev = self._plantar_plot(sol.pressure_pa / 1e3, "06_contact",
+                                  "simulated pressure (kPa)", "magma")
 
         self._done(s, t0,
                    f"Shore 70A, 14 mm. Peak {sm['peak_pressure_kpa']:.0f} kPa over "
@@ -369,19 +429,21 @@ class LivePipeline:
         ls = lat.summary()
 
         V = np.asarray(lat.mesh.vertices); F = np.asarray(lat.mesh.faces)
-        step = max(1, len(F) // 22000)
-        fig = plt.figure(figsize=(4.4, 5.4))
-        ax = fig.add_subplot(111, projection="3d")
-        ax.add_collection3d(Poly3DCollection(V[F[::step]], facecolor="#5b7fa6",
-                                             edgecolor="none"))
+        step = max(1, len(F) // 20000)
         ex = V.max(0) - V.min(0)
-        ax.set_xlim(V[:, 0].min(), V[:, 0].max())
-        ax.set_ylim(V[:, 1].min(), V[:, 1].max())
-        ax.set_zlim(V[:, 2].min(), V[:, 2].max())
-        ax.set_box_aspect(tuple(ex)); ax.view_init(elev=48, azim=-70); ax.set_axis_off()
+        fig = plt.figure(figsize=(9.6, 3.6))
+        for k, (el, az, ttl) in enumerate(
+                ((90, -90, "top"), (12, -90, "side"), (34, -62, "oblique"))):
+            ax = fig.add_subplot(1, 3, k + 1, projection="3d")
+            ax.add_collection3d(Poly3DCollection(V[F[::step]], facecolor="#5b7fa6",
+                                                 edgecolor="none"))
+            ax.set_xlim(V[:, 0].min(), V[:, 0].max())
+            ax.set_ylim(V[:, 1].min(), V[:, 1].max())
+            ax.set_zlim(V[:, 2].min(), V[:, 2].max())
+            ax.set_box_aspect(tuple(ex)); ax.view_init(elev=el, azim=az)
+            ax.set_axis_off(); ax.set_title(ttl, fontsize=9, color="#666")
         fig.tight_layout()
-        prev = self._fig("07_geometry")
-        fig.savefig(prev, dpi=110); plt.close(fig)
+        prev = self._save_plot(fig, "07_geometry")
 
         self._done(s, t0,
                    f"{ls['n_faces']:,} faces, watertight={ls['watertight']}, "

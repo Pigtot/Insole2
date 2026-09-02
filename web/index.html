@@ -98,8 +98,11 @@ h2{font-size:12px;font-weight:640;text-transform:uppercase;letter-spacing:.1em;
 input[type=file]{display:none}
 
 .steps{display:grid;gap:9px;margin-top:14px}
-.step{display:grid;grid-template-columns:26px 1fr auto;gap:13px;align-items:start;
+.step{display:grid;grid-template-columns:26px 1fr auto;gap:6px 13px;align-items:start;
   padding:13px 16px;transition:border-color var(--t-fast) var(--ease)}
+/* The preview spans the whole card rather than sharing a column with the status
+   pill, so it gets the full width instead of whatever is left over. */
+.step .prev{grid-column:1 / -1;margin-top:8px}
 .step .idx{font-family:var(--mono);font-size:11px;color:var(--faint);
   padding-top:2px;font-variant-numeric:tabular-nums}
 .step .st{font-size:14.5px;font-weight:580;letter-spacing:-.008em}
@@ -107,8 +110,12 @@ input[type=file]{display:none}
 .step .sc{font-size:12px;color:var(--warn);margin-top:6px;padding:7px 10px;
   background:var(--warn-bg);border-radius:var(--radius-sm);line-height:1.45}
 .step .sm{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:6px}
-.step img{margin-top:11px;max-width:100%;max-height:230px;border-radius:var(--radius-sm);
+.step img{width:100%;max-width:680px;height:auto;
+  border-radius:var(--radius-sm);background:#fff;
   outline:1px solid var(--img-outline);outline-offset:-1px;display:block;cursor:zoom-in}
+/* Portrait previews (the plantar maps) would run absurdly tall at full card
+   width, so cap them by height and let width follow instead. */
+.step img.portrait{width:auto;max-width:100%;max-height:330px}
 .step.running{border-color:var(--warn)}
 .spin{width:11px;height:11px;border:2px solid var(--line);border-top-color:var(--warn);
   border-radius:50%;display:inline-block;animation:sp .7s linear infinite;vertical-align:-1px}
@@ -175,7 +182,10 @@ code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);
       evidenced — measured, simulated, or not validated at all.</p>
   </header>
 
-  <h2>Analyse a video</h2>
+  <h2>Worked example</h2>
+  <div id="worked"></div>
+
+  <h2>Analyse your own video</h2>
   <div class="card drop" id="drop">
     <h3>Drop a walking video here</h3>
     <p>Or click to choose a file. The pipeline runs locally on this machine.</p>
@@ -281,11 +291,49 @@ fetch("/api/data").then(r => r.json()).then(d => {
       <figcaption><div class="ft">${esc(f.title)}</div>
         <div class="fc">${esc(f.caption)}</div></figcaption>
     </figure>`).join("");
+  renderWorked(d.worked_example);
   zoomable();
 }).catch(e => {
   document.getElementById("metrics").innerHTML =
     `<div class="card note">Could not load results: ${esc(e.message)}</div>`;
 });
+
+/* ---------- worked example ---------- */
+function stepHtml(s, i, base){
+  const met = Object.entries(s.metrics || {}).map(([k, v]) => `${k}=${v}`).join("  ");
+  return `
+    <div class="card step ${s.status === "running" ? "running" : ""}">
+      <div class="idx">${String(i + 1).padStart(2, "0")}</div>
+      <div>
+        <div class="st">${esc(s.title)}</div>
+        ${s.detail ? `<div class="sd">${esc(s.detail)}</div>` : ""}
+        ${met ? `<div class="sm">${esc(met)}</div>` : ""}
+        ${s.caveat ? `<div class="sc">${esc(s.caveat)}</div>` : ""}
+      </div>
+      <span class="pill p-${esc(s.status)}" style="margin:0">${
+        s.status === "running" ? '<span class="spin"></span> running' : esc(s.status)
+      }${s.seconds != null ? " · " + s.seconds + "s" : ""}</span>
+      ${s.preview ? `<div class="prev">${
+        previewImg(base + s.preview, s.title, s.preview_w, s.preview_h)}</div>` : ""}
+    </div>`;
+}
+
+function renderWorked(w){
+  const el = document.getElementById("worked");
+  if (!w){
+    el.innerHTML = `<div class="card note">No worked example yet — run
+      <code>scripts/make_demo_run.py</code>.</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="card note">
+      <b>${esc(w.clip)}</b> — ${esc(w.video)}.
+      Source: ${esc(w.source)}.<br>${esc(w.note)}
+    </div>
+    <div class="steps">${w.stages.map((s, i) =>
+      stepHtml(s, i, "/experiments/demo_run/")).join("")}</div>`;
+  zoomable();
+}
 
 /* ---------- live pipeline ---------- */
 const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
@@ -304,32 +352,23 @@ drop.addEventListener("drop", e => {
   if (f) upload(f);
 });
 
+function previewImg(src, alt, w, h){
+  // width/height reserve the box before the image arrives, so a lazily loaded
+  // preview cannot shove the rest of the page down as it lands.
+  const portrait = w && h && (w / h) < 1.15;
+  const dims = w && h ? `width="${w}" height="${h}" style="aspect-ratio:${w}/${h}"` : "";
+  return `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" decoding="async"
+    class="${portrait ? "portrait" : ""}" ${dims} data-zoom="${esc(src)}">`;
+}
+
 function renderSteps(job){
   const el = document.getElementById("steps");
   if (job.error){
     el.innerHTML = `<div class="card note caution">Pipeline failed: ${esc(job.error)}</div>`;
     return;
   }
-  el.innerHTML = (job.stages || []).map((s, i) => {
-    const met = Object.entries(s.metrics || {})
-      .map(([k, v]) => `${k}=${v}`).join("  ");
-    return `
-    <div class="card step ${s.status === "running" ? "running" : ""}">
-      <div class="idx">${String(i + 1).padStart(2, "0")}</div>
-      <div>
-        <div class="st">${esc(s.title)}</div>
-        ${s.detail ? `<div class="sd">${esc(s.detail)}</div>` : ""}
-        ${met ? `<div class="sm">${esc(met)}</div>` : ""}
-        ${s.caveat ? `<div class="sc">${esc(s.caveat)}</div>` : ""}
-        ${s.preview ? `<img src="/experiments/live_jobs/${esc(job.id)}/${esc(s.preview)}"
-             alt="${esc(s.title)}" loading="lazy"
-             data-zoom="/experiments/live_jobs/${esc(job.id)}/${esc(s.preview)}">` : ""}
-      </div>
-      <span class="pill p-${esc(s.status)}" style="margin:0">${
-        s.status === "running" ? '<span class="spin"></span> running' : esc(s.status)
-      }${s.seconds != null ? " · " + s.seconds + "s" : ""}</span>
-    </div>`;
-  }).join("");
+  el.innerHTML = (job.stages || [])
+    .map((s, i) => stepHtml(s, i, `/experiments/live_jobs/${job.id}/`)).join("");
   zoomable();
 }
 

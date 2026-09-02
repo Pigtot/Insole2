@@ -1,0 +1,131 @@
+{
+  "source": "Insole-GAITRite dataset, Zenodo 10.5281/zenodo.19662017 (CC-BY-4.0)",
+  "clip": "P9/NP/1",
+  "video": "1920x1088, 60.0 fps, 3.5 s",
+  "in_distribution": true,
+  "note": "A dataset clip, so the loading model is operating on the camera and setup it was trained for. On other footage the same stages run but the loading stage is extrapolating.",
+  "stl_mb_generated_then_discarded": 3.8,
+  "stages": [
+    {
+      "key": "video",
+      "title": "Video",
+      "status": "done",
+      "detail": "1920\u00d71088, 60.0 fps, 3.5 s",
+      "metrics": {
+        "frames": 212,
+        "fps": 60.0
+      },
+      "preview": "00_video.jpg",
+      "preview_w": 1200,
+      "preview_h": 680,
+      "seconds": 0.2,
+      "caveat": null
+    },
+    {
+      "key": "pose",
+      "title": "Pose detection",
+      "status": "done",
+      "detail": "44 of 44 sampled frames had a person detected (100%)",
+      "metrics": {
+        "frames": 44,
+        "detection_rate": 100.0
+      },
+      "preview": "01_pose.jpg",
+      "preview_w": 924,
+      "preview_h": 523,
+      "seconds": 7.8,
+      "caveat": null
+    },
+    {
+      "key": "features",
+      "title": "Kinematic features",
+      "status": "done",
+      "detail": "130 features per frame, 37 usable frames. Ankle, knee and hip positions normalised by torso length.",
+      "metrics": {
+        "n_features": 130,
+        "usable_frames": 37
+      },
+      "preview": null,
+      "preview_w": 0,
+      "preview_h": 0,
+      "seconds": 0.0,
+      "caveat": null
+    },
+    {
+      "key": "pressure",
+      "title": "Predicted plantar loading",
+      "status": "done",
+      "detail": "Peak total load at frame 2. Units are raw sensor counts, not kPa.",
+      "metrics": {
+        "peak_frame": 2,
+        "peak_counts": 52833.8
+      },
+      "preview": "03_pressure.png",
+      "preview_w": 1364,
+      "preview_h": 484,
+      "seconds": 0.1,
+      "caveat": "The model was trained on one fixed camera in one room with shod feet. On any other video this is out of distribution \u2014 illustrative of the pipeline, not a measurement of this person."
+    },
+    {
+      "key": "canonical",
+      "title": "Canonical plantar frame",
+      "status": "done",
+      "detail": "32 predicted channels lifted onto a shared plantar grid.",
+      "metrics": {
+        "grid": "24\u00d756"
+      },
+      "preview": "04_canonical.png",
+      "preview_w": 607,
+      "preview_h": 644,
+      "seconds": 0.1,
+      "caveat": null
+    },
+    {
+      "key": "density",
+      "title": "Pressure \u2192 material",
+      "status": "done",
+      "detail": "Soften mapping: higher predicted pressure \u2192 lower lattice density.",
+      "metrics": {
+        "rho_min": 0.2,
+        "rho_max": 0.55
+      },
+      "preview": "05_density.png",
+      "preview_w": 605,
+      "preview_h": 644,
+      "seconds": 0.9,
+      "caveat": null
+    },
+    {
+      "key": "contact",
+      "title": "Contact simulation",
+      "status": "done",
+      "detail": "Shore 70A, 14 mm. Peak 171 kPa over 89 cm\u00b2. Accepted.",
+      "metrics": {
+        "peak_kpa": 171.3,
+        "contact_cm2": 89.0,
+        "bottomed_pct": 0.0
+      },
+      "preview": "06_contact.png",
+      "preview_w": 602,
+      "preview_h": 644,
+      "seconds": 0.1,
+      "caveat": "Simulated under a Winkler foundation model with a nominal 700 N load. kPa here is a model output, not a measurement."
+    },
+    {
+      "key": "geometry",
+      "title": "Graded insole",
+      "status": "done",
+      "detail": "76,380 faces, watertight=True, connected=True. STL ready to slice.",
+      "metrics": {
+        "faces": 76380,
+        "volume_cm3": 78.7,
+        "watertight": true
+      },
+      "preview": "07_geometry.png",
+      "preview_w": 1884,
+      "preview_h": 659,
+      "seconds": 0.9,
+      "caveat": null
+    }
+  ]
+}

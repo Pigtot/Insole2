@@ -183,8 +183,13 @@ def build_payload() -> dict:
     for f in figures:
         f["w"], f["h"] = _png_size(REPO / f["src"].lstrip("/"))
 
+    # A baked run of the full pipeline, so the page shows real per-stage output
+    # immediately rather than only after someone uploads something.
+    worked = _load("experiments/demo_run/demo.json")
+
     return dict(metrics=metrics, stages=stages, filaments=filaments, figures=figures,
-                demo=demo, generated_from="experiment JSON on disk")
+                demo=demo, worked_example=worked,
+                generated_from="experiment JSON on disk")
 
 
 def _json_safe(obj):
