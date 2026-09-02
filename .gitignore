@@ -50,3 +50,6 @@ experiments/focus_baseline/sfm_run*/
 experiments/focus_baseline/synthetic/*_rgb/
 experiments/focus_baseline/synthetic/*_run/
 experiments/integrated_demo/*.stl
+# --- live dashboard jobs: user-uploaded video and regenerable previews.
+# Never commit these -- they may contain someone's personal footage.
+experiments/live_jobs/

@@ -14,13 +14,23 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import re
+import shutil
 import socketserver
 import sys
+import threading
+import uuid
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+JOBS_DIR = REPO / "experiments" / "live_jobs"
+MAX_UPLOAD = 300 * 1024 * 1024          # 300 MB; a walking clip is a few MB
+
+#: job id -> {"stages": [...], "done": bool, "error": str|None}
+JOBS: dict[str, dict] = {}
+JOBS_LOCK = threading.Lock()
 
 
 _SUPS = str.maketrans("0123456789.", "\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079\u02d9")
@@ -196,8 +206,90 @@ def _json_safe(obj):
     return obj
 
 
+def _split_multipart(body: bytes, content_type: str):
+    """Pull the first file part out of a multipart/form-data body.
+
+    Hand-rolled rather than using cgi.FieldStorage, which is deprecated and gone
+    in 3.13 -- this keeps the viewer working on future interpreters.
+    """
+    m = re.search(r"boundary=([^;]+)", content_type or "")
+    if not m:
+        return None, None
+    boundary = b"--" + m.group(1).strip('"').encode()
+    for part in body.split(boundary):
+        head, _, data = part.partition(b"\r\n\r\n")
+        if b"filename=" not in head:
+            continue
+        fn = re.search(rb'filename="([^"]*)"', head)
+        name = (fn.group(1).decode(errors="replace") if fn else "upload.mp4") or "upload.mp4"
+        return Path(name).name, data.rstrip(b"\r\n-")
+    return None, None
+
+
+def _run_job(job_id: str, video: Path):
+    sys.path.insert(0, str(REPO / "src"))
+    from visole.pipeline.live import LivePipeline
+
+    def on_update(stages):
+        with JOBS_LOCK:
+            JOBS[job_id]["stages"] = [s.as_dict() for s in stages]
+
+    try:
+        stages = LivePipeline(video, JOBS_DIR / job_id, on_update=on_update).run()
+        with JOBS_LOCK:
+            JOBS[job_id]["stages"] = [s.as_dict() for s in stages]
+            JOBS[job_id]["done"] = True
+    except Exception as exc:
+        with JOBS_LOCK:
+            JOBS[job_id]["done"] = True
+            JOBS[job_id]["error"] = f"{type(exc).__name__}: {exc}"
+
+
 class Handler(SimpleHTTPRequestHandler):
+    def _json(self, obj, code=200):
+        body = json.dumps(_json_safe(obj), allow_nan=False).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):  # noqa: N802
+        if self.path.rstrip("/") != "/api/upload":
+            return self._json({"error": "unknown endpoint"}, 404)
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0:
+            return self._json({"error": "empty upload"}, 400)
+        if length > MAX_UPLOAD:
+            return self._json(
+                {"error": f"file is {length/1e6:.0f} MB; limit is {MAX_UPLOAD/1e6:.0f} MB"},
+                413)
+        body = self.rfile.read(length)
+        name, data = _split_multipart(body, self.headers.get("Content-Type", ""))
+        if not data:
+            return self._json({"error": "no file found in the upload"}, 400)
+
+        job_id = uuid.uuid4().hex[:12]
+        d = JOBS_DIR / job_id
+        d.mkdir(parents=True, exist_ok=True)
+        video = d / (name if name.lower().endswith((".mp4", ".mov", ".m4v", ".avi"))
+                     else "upload.mp4")
+        video.write_bytes(data)
+
+        with JOBS_LOCK:
+            JOBS[job_id] = {"stages": [], "done": False, "error": None,
+                            "filename": name, "bytes": len(data)}
+        threading.Thread(target=_run_job, args=(job_id, video), daemon=True).start()
+        return self._json({"job": job_id, "filename": name,
+                           "size_mb": round(len(data) / 1e6, 1)})
+
     def do_GET(self):  # noqa: N802
+        m = re.match(r"^/api/job/([0-9a-f]{6,32})/?$", self.path)
+        if m:
+            with JOBS_LOCK:
+                job = JOBS.get(m.group(1))
+            return self._json(job or {"error": "unknown job"}, 200 if job else 404)
         if self.path.rstrip("/") in ("/api/data", "/api/data.json"):
             body = json.dumps(_json_safe(build_payload()), allow_nan=False).encode()
             self.send_response(200)
@@ -228,6 +320,7 @@ def main() -> int:
     if args.dry_run:
         return 0
 
+    JOBS_DIR.mkdir(parents=True, exist_ok=True)
     handler = partial(Handler, directory=str(REPO))
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", args.port), handler) as httpd:

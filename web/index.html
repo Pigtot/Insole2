@@ -6,160 +6,190 @@
 <title>Visole</title>
 <style>
 :root{
-  --text:#1d1d1f; --muted:#6e6e73; --faint:#8e8e93;
-  --glass:rgba(255,255,255,.58); --glass-2:rgba(255,255,255,.42);
-  --edge:rgba(255,255,255,.65); --edge-2:rgba(255,255,255,.35);
-  --shadow:0 8px 32px rgba(31,38,135,.12), 0 2px 8px rgba(0,0,0,.04);
-  --measured:#1c7c3f; --measured-bg:rgba(52,199,89,.16);
-  --simulated:#0a68d0; --simulated-bg:rgba(10,132,255,.16);
-  --unvalidated:#7c7c82; --unvalidated-bg:rgba(142,142,147,.18);
-  --radius:26px;
-  /* Interaction feedback must be fast: a hover that takes 350ms reads as lag.
-     The curve is exact, not approximate. */
-  --ease:cubic-bezier(.2,0,0,1);
-  --t-fast:140ms; --t-enter:520ms;
+  --bg:#f6f6f7; --bg-2:#ececed;
+  --surface:rgba(255,255,255,.82); --surface-2:rgba(0,0,0,.025);
+  --text:#16161a; --muted:#5c5c66; --faint:#87878f;
+  --line:rgba(0,0,0,.10); --line-soft:rgba(0,0,0,.06);
+  --accent:#2b4a7d;
+  --measured:#1f6b41; --measured-bg:rgba(31,107,65,.10);
+  --simulated:#2b4a7d; --simulated-bg:rgba(43,74,125,.10);
+  --unvalidated:#6b6b73; --unvalidated-bg:rgba(107,107,115,.10);
+  --warn:#8a5a1b; --warn-bg:rgba(138,90,27,.09);
+  --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+  --radius:12px; --radius-sm:8px;
+  --ease:cubic-bezier(.2,0,0,1); --t-fast:140ms; --t-enter:460ms;
   --img-outline:oklch(0 0 0 / .1);
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --text:#f5f5f7; --muted:#a1a1a6; --faint:#8e8e93;
-    --glass:rgba(28,28,30,.55); --glass-2:rgba(44,44,46,.42);
-    --edge:rgba(255,255,255,.14); --edge-2:rgba(255,255,255,.08);
-    --shadow:0 8px 32px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.2);
-    --measured:#4ee07a; --measured-bg:rgba(52,199,89,.18);
-    --simulated:#6cb6ff; --simulated-bg:rgba(10,132,255,.2);
-    --unvalidated:#9a9aa0; --unvalidated-bg:rgba(142,142,147,.2);
+    --bg:#0c0c0e; --bg-2:#141417;
+    --surface:rgba(24,24,28,.82); --surface-2:rgba(255,255,255,.035);
+    --text:#ececf0; --muted:#9a9aa4; --faint:#74747e;
+    --line:rgba(255,255,255,.11); --line-soft:rgba(255,255,255,.06);
+    --accent:#8fb0e0;
+    --measured:#5cbd8a; --measured-bg:rgba(92,189,138,.12);
+    --simulated:#8fb0e0; --simulated-bg:rgba(143,176,224,.12);
+    --unvalidated:#8d8d97; --unvalidated-bg:rgba(141,141,151,.12);
+    --warn:#d8a556; --warn-bg:rgba(216,165,86,.12);
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.35);
     --img-outline:oklch(1 0 0 / .1);
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+html{-webkit-font-smoothing:antialiased}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Inter,sans-serif;
-  color:var(--text); min-height:100vh; position:relative; overflow-x:hidden;
-  background:#eef1f7;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Inter,sans-serif;
+  color:var(--text);min-height:100vh;font-size:15px;line-height:1.55;
+  background:
+    radial-gradient(1100px 620px at 50% -8%, var(--bg-2), transparent 70%),
+    var(--bg);
 }
-@media (prefers-color-scheme:dark){ body{background:#07070b} }
-
-/* colour field behind the glass */
-.field{position:fixed;inset:0;z-index:-2;overflow:hidden}
-.blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.62;
-  animation:drift 26s ease-in-out infinite alternate}
-.b1{width:52vw;height:52vw;background:#7b5cff;top:-14vw;left:-8vw}
-.b2{width:46vw;height:46vw;background:#00c6ff;top:22vh;right:-12vw;animation-delay:-7s}
-.b3{width:42vw;height:42vw;background:#ff5c8a;bottom:-14vw;left:18vw;animation-delay:-13s}
-.b4{width:34vw;height:34vw;background:#ffc531;bottom:8vh;right:14vw;animation-delay:-19s}
-@media (prefers-color-scheme:dark){ .blob{opacity:.4} }
-@keyframes drift{ to{transform:translate3d(4vw,-5vh,0) scale(1.14)} }
-@media (prefers-reduced-motion:reduce){
-  .blob{animation:none}
-  .enter{animation:none}
-  *{transition-duration:.01ms !important}
-}
-
-@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .enter{animation:rise var(--t-enter) var(--ease) both}
-
-.wrap{max-width:1120px;margin:0 auto;padding:clamp(28px,5vw,68px) clamp(18px,4vw,30px) 90px}
-
-/* glass primitive */
-.glass{
-  background:var(--glass); border:1px solid var(--edge); border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  -webkit-backdrop-filter:blur(34px) saturate(185%); backdrop-filter:blur(34px) saturate(185%);
+@media (prefers-reduced-motion:reduce){
+  .enter{animation:none} *{transition-duration:.01ms !important}
 }
 
-header{text-align:center;margin-bottom:clamp(28px,4vw,44px)}
-.mark{display:inline-flex;align-items:center;gap:11px;padding:9px 19px;border-radius:100px;
-  font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--muted);margin-bottom:22px}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--measured);
-  box-shadow:0 0 12px var(--measured)}
-h1{font-size:clamp(46px,8.5vw,86px);font-weight:700;letter-spacing:-.035em;line-height:1.02;
-  background:linear-gradient(135deg,#7b5cff,#00a2ff 42%,#ff5c8a);
-  -webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:16px}
-.tag{font-size:clamp(16px,2.3vw,21px);color:var(--muted);max-width:660px;margin:0 auto;
-  line-height:1.5;font-weight:400;text-wrap:balance}
+.wrap{max-width:1060px;margin:0 auto;padding:clamp(30px,5vw,64px) clamp(18px,4vw,28px) 96px}
 
-h2{font-size:13px;font-weight:660;text-transform:uppercase;letter-spacing:.09em;
-  color:var(--faint);margin:52px 0 16px 6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);-webkit-backdrop-filter:blur(18px) saturate(140%);
+  backdrop-filter:blur(18px) saturate(140%)}
+
+/* header */
+header{border-bottom:1px solid var(--line);padding-bottom:26px;margin-bottom:38px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:12px}
+h1{font-size:clamp(30px,4.4vw,42px);font-weight:640;letter-spacing:-.022em;line-height:1.1}
+.lede{margin-top:11px;font-size:16px;color:var(--muted);max-width:64ch;text-wrap:balance}
+
+h2{font-size:12px;font-weight:640;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--faint);margin:46px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line-soft)}
 
 /* metrics */
-.metrics{display:grid;gap:15px;grid-template-columns:repeat(auto-fit,minmax(258px,1fr))}
-.metric{padding:24px 24px 21px;transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
-.metric:hover{transform:translateY(-4px);box-shadow:0 16px 44px rgba(31,38,135,.18)}
-.metric .lab{font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:.01em}
-.metric .val{font-size:41px;font-weight:680;letter-spacing:-.03em;margin:9px 0 2px;
+.metrics{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(238px,1fr))}
+.metric{padding:18px 19px 16px;transition:border-color var(--t-fast) var(--ease)}
+.metric:hover{border-color:var(--line)}
+.metric .lab{font-size:12px;font-weight:560;color:var(--muted)}
+.metric .val{font-size:31px;font-weight:620;letter-spacing:-.024em;margin:7px 0 1px;
   font-variant-numeric:tabular-nums}
-.metric .unit{font-size:14px;color:var(--muted);font-weight:500}
-.metric .sub{font-size:12.5px;color:var(--faint);margin-top:11px;line-height:1.45}
+.metric .unit{font-size:13px;color:var(--muted);font-weight:460}
+.metric .sub{font-size:12px;color:var(--faint);margin-top:8px;line-height:1.45}
 
-.pill{display:inline-block;padding:4px 11px;border-radius:100px;font-size:10.5px;
-  font-weight:680;letter-spacing:.055em;text-transform:uppercase;margin-top:14px}
+.pill{display:inline-block;padding:3px 9px;border-radius:5px;font-family:var(--mono);
+  font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;margin-top:11px}
 .p-measured{color:var(--measured);background:var(--measured-bg)}
 .p-simulated{color:var(--simulated);background:var(--simulated-bg)}
 .p-unvalidated{color:var(--unvalidated);background:var(--unvalidated-bg)}
+.p-running{color:var(--warn);background:var(--warn-bg)}
+.p-pending{color:var(--faint);background:var(--surface-2)}
+.p-done{color:var(--measured);background:var(--measured-bg)}
+.p-failed{color:#a33;background:rgba(170,51,51,.1)}
+.p-skipped{color:var(--faint);background:var(--surface-2)}
+
+/* analyse */
+.drop{padding:30px 26px;text-align:center;border:1px dashed var(--line);cursor:pointer;
+  transition:border-color var(--t-fast) var(--ease),background var(--t-fast) var(--ease)}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--surface-2)}
+.drop h3{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.drop p{font-size:13px;color:var(--muted);margin-top:5px}
+.drop .hint{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:10px}
+input[type=file]{display:none}
+
+.steps{display:grid;gap:9px;margin-top:14px}
+.step{display:grid;grid-template-columns:26px 1fr auto;gap:13px;align-items:start;
+  padding:13px 16px;transition:border-color var(--t-fast) var(--ease)}
+.step .idx{font-family:var(--mono);font-size:11px;color:var(--faint);
+  padding-top:2px;font-variant-numeric:tabular-nums}
+.step .st{font-size:14.5px;font-weight:580;letter-spacing:-.008em}
+.step .sd{font-size:12.5px;color:var(--muted);margin-top:3px}
+.step .sc{font-size:12px;color:var(--warn);margin-top:6px;padding:7px 10px;
+  background:var(--warn-bg);border-radius:var(--radius-sm);line-height:1.45}
+.step .sm{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:6px}
+.step img{margin-top:11px;max-width:100%;max-height:230px;border-radius:var(--radius-sm);
+  outline:1px solid var(--img-outline);outline-offset:-1px;display:block;cursor:zoom-in}
+.step.running{border-color:var(--warn)}
+.spin{width:11px;height:11px;border:2px solid var(--line);border-top-color:var(--warn);
+  border-radius:50%;display:inline-block;animation:sp .7s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .spin{animation:none} }
 
 /* pipeline */
-.stage{display:flex;gap:19px;align-items:flex-start;padding:19px 23px;margin-bottom:11px;
-  transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
-.stage:hover{transform:translateX(5px);box-shadow:0 12px 34px rgba(31,38,135,.14)}
-.num{flex:0 0 33px;height:33px;border-radius:50%;display:grid;place-items:center;
-  font-size:13.5px;font-weight:680;background:var(--glass-2);border:1px solid var(--edge-2)}
-.stage .body{flex:1;min-width:0}
-.stage .t{font-size:16.5px;font-weight:620;letter-spacing:-.012em}
-.stage .d{font-size:13.5px;color:var(--muted);margin-top:5px;line-height:1.5}
+.stage{display:grid;grid-template-columns:26px 1fr auto;gap:13px;align-items:start;
+  padding:14px 16px;margin-bottom:8px;transition:border-color var(--t-fast) var(--ease)}
+.stage:hover{border-color:var(--line)}
+.stage .idx{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:3px}
+.stage .t{font-size:14.5px;font-weight:580;letter-spacing:-.008em}
+.stage .d{font-size:12.5px;color:var(--muted);margin-top:3px}
 
-/* filament table */
-.tbl{padding:8px 6px;overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}
-th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;
-  color:var(--faint);font-weight:640;padding:13px 16px}
-td{padding:12px 16px;border-top:1px solid var(--edge-2);font-variant-numeric:tabular-nums}
-tbody tr{transition:background .2s}
-tbody tr:hover{background:var(--glass-2)}
-.best td{font-weight:640}
-.best td:first-child::after{content:"BEST";font-size:9px;font-weight:700;letter-spacing:.07em;
-  color:var(--measured);background:var(--measured-bg);padding:2px 7px;border-radius:100px;margin-left:9px}
-.delta{color:var(--measured);font-weight:620}
+/* table */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:540px}
+th{text-align:left;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--faint);font-weight:600;padding:11px 15px;
+  border-bottom:1px solid var(--line)}
+td{padding:10px 15px;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:background var(--t-fast) var(--ease)}
+tbody tr:hover{background:var(--surface-2)}
+.best td{font-weight:600}
+.best td:first-child::after{content:"OPTIMUM";font-family:var(--mono);font-size:9px;
+  font-weight:600;letter-spacing:.07em;color:var(--measured);background:var(--measured-bg);
+  padding:2px 6px;border-radius:4px;margin-left:8px}
+.delta{color:var(--measured);font-weight:580}
 
 /* figures */
-.figs{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+.figs{display:grid;gap:13px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
 figure{overflow:hidden;cursor:zoom-in;
-  transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease)}
-figure:hover{transform:translateY(-4px);box-shadow:0 16px 44px rgba(31,38,135,.18)}
-/* Tactile press feedback. 0.96 exactly -- lower reads as exaggerated. */
+  transition:border-color var(--t-fast) var(--ease),transform var(--t-fast) var(--ease)}
+figure:hover{border-color:var(--line)}
 figure:active{transform:scale(.96)}
 figure img{width:100%;display:block;background:#fff;
   outline:1px solid var(--img-outline);outline-offset:-1px}
-figcaption{padding:15px 19px 18px}
-figcaption .ft{font-size:15px;font-weight:620;letter-spacing:-.01em;text-wrap:balance}
-figcaption .fc{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45}
+figcaption{padding:13px 16px 15px}
+figcaption .ft{font-size:14px;font-weight:580;text-wrap:balance}
+figcaption .fc{font-size:12px;color:var(--muted);margin-top:3px}
 
-/* lightbox */
 .lb{position:fixed;inset:0;z-index:99;display:none;place-items:center;padding:4vh 4vw;
-  background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
+  background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .lb.on{display:grid}
-.lb img{max-width:100%;max-height:92vh;border-radius:16px;box-shadow:0 30px 90px rgba(0,0,0,.5)}
+.lb img{max-width:100%;max-height:92vh;border-radius:var(--radius-sm)}
 
-.note{padding:21px 25px;margin-top:15px;font-size:13.5px;color:var(--muted);line-height:1.6}
-.note b{color:var(--text);font-weight:620}
-footer{text-align:center;margin-top:56px;font-size:12px;color:var(--faint);line-height:1.7}
-code{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;
-  background:var(--glass-2);padding:2.5px 7px;border-radius:6px}
-.err{padding:28px;text-align:center;color:var(--muted)}
+.note{padding:16px 19px;margin-top:12px;font-size:13px;color:var(--muted);line-height:1.6}
+.note b{color:var(--text);font-weight:600}
+.note.caution{border-left:2px solid var(--warn)}
+footer{margin-top:52px;padding-top:22px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--faint);line-height:1.7}
+code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);
+  padding:2px 6px;border-radius:4px}
 </style>
 </head>
 <body>
-<div class="field"><div class="blob b1"></div><div class="blob b2"></div>
-<div class="blob b3"></div><div class="blob b4"></div></div>
-
 <div class="wrap">
   <header>
-    <div class="mark glass"><span class="dot"></span>Live from experiment data</div>
+    <div class="eyebrow">Design Engineering Report · generated from experiment data</div>
     <h1>Visole</h1>
-    <p class="tag">From ordinary video and photographs to a pressure-adaptive,
-       3D-printable lattice insole — with every claim labelled by how well it is evidenced.</p>
+    <p class="lede">From ordinary video and photographs to a pressure-adaptive,
+      3D-printable lattice insole. Every claim below is labelled by how well it is
+      evidenced — measured, simulated, or not validated at all.</p>
   </header>
+
+  <h2>Analyse a video</h2>
+  <div class="card drop" id="drop">
+    <h3>Drop a walking video here</h3>
+    <p>Or click to choose a file. The pipeline runs locally on this machine.</p>
+    <div class="hint">MP4 / MOV · a few seconds is enough · nothing is uploaded anywhere</div>
+    <input type="file" id="file" accept="video/mp4,video/quicktime,video/*">
+  </div>
+  <div class="card note caution">
+    <b>What this can and cannot tell you.</b> Pose detection, the contact mechanics
+    and the geometry are valid for any video. The <b>loading prediction is not</b>: that
+    model was trained on one fixed camera, in one room, with shod feet. On your video it
+    is out of distribution, and the pressure it reports is illustrative of the pipeline
+    rather than a measurement of the person in the clip.
+  </div>
+  <div class="steps" id="steps"></div>
 
   <h2>Results</h2>
   <div class="metrics" id="metrics"></div>
@@ -167,14 +197,14 @@ code{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;
   <h2>Pipeline</h2>
   <div id="stages"></div>
 
-  <h2>Which filament</h2>
-  <div class="glass tbl"><table>
+  <h2>Filament selection</h2>
+  <div class="card tbl"><table>
     <thead><tr><th>Grade</th><th>Bulk modulus</th><th>Peak pressure</th>
       <th>vs 95A</th><th>Printability</th></tr></thead>
     <tbody id="filaments"></tbody>
   </table></div>
-  <div class="glass note">
-    <b>Softer printable TPU wins, and no foam is required.</b> Within printable grades the
+  <div class="card note">
+    <b>Softer printable TPU wins; no foam is required.</b> Within printable grades the
     relationship is monotonic, so the choice trades directly against print difficulty —
     70–80A is the practical compromise. Shore hardness was converted to modulus with an
     empirical relation carrying roughly ±30% scatter; a compression test on a printed
@@ -184,15 +214,16 @@ code{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;
   <h2>Figures</h2>
   <div class="figs" id="figures"></div>
 
-  <div class="glass note" style="margin-top:24px">
-    <b>What is not validated.</b> Nothing here has touched a real foot. There is no printed
-    part, no pressure sensor and no human testing. Pressures in kPa are simulated outputs of
-    a Winkler contact model; the measured insole data stays in raw sensor counts and supplies
+  <div class="card note caution" style="margin-top:20px">
+    <b>Not validated.</b> Nothing here has touched a real foot. There is no printed part,
+    no pressure sensor and no human testing. Pressures in kPa are simulated outputs of a
+    Winkler contact model; measured insole data stays in raw sensor counts and supplies
     only the shape of the load.
   </div>
 
   <footer>
-    Generated from the experiment JSON on disk · <code>scripts/serve_visole.py</code><br>
+    Served by <code>scripts/serve_visole.py</code> · numbers read live from the experiment
+    JSON on disk<br>
     Rebuild the insole with <code>scripts/run_visole_pipeline.py</code>
   </footer>
 </div>
@@ -202,13 +233,25 @@ code{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;
 <script>
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const lb = () => document.getElementById("lb");
 
-fetch("/api/data").then(r => {
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
-}).then(d => {
+function zoomable(){
+  document.querySelectorAll("[data-zoom]").forEach(el => {
+    if (el.dataset.bound) return;
+    el.dataset.bound = "1";
+    el.addEventListener("click", () => {
+      document.getElementById("lbimg").src = el.dataset.zoom;
+      lb().classList.add("on");
+    });
+  });
+}
+lb().addEventListener("click", () => lb().classList.remove("on"));
+addEventListener("keydown", e => { if (e.key === "Escape") lb().classList.remove("on"); });
+
+/* ---------- static report ---------- */
+fetch("/api/data").then(r => r.json()).then(d => {
   document.getElementById("metrics").innerHTML = d.metrics.map((m, i) => `
-    <div class="glass metric enter" style="animation-delay:${i * 60}ms">
+    <div class="card metric enter" style="animation-delay:${i * 50}ms">
       <div class="lab">${esc(m.label)}</div>
       <div class="val">${esc(m.value)} <span class="unit">${esc(m.unit)}</span></div>
       <div class="sub">${esc(m.sub)}</div>
@@ -216,12 +259,9 @@ fetch("/api/data").then(r => {
     </div>`).join("");
 
   document.getElementById("stages").innerHTML = d.stages.map((s, i) => `
-    <div class="glass stage enter" style="animation-delay:${i * 55}ms">
-      <div class="num">${s.n}</div>
-      <div class="body">
-        <div class="t">${esc(s.title)}</div>
-        <div class="d">${esc(s.detail)}</div>
-      </div>
+    <div class="card stage enter" style="animation-delay:${i * 45}ms">
+      <div class="idx">${String(s.n).padStart(2, "0")}</div>
+      <div><div class="t">${esc(s.title)}</div><div class="d">${esc(s.detail)}</div></div>
       <span class="pill p-${esc(s.status)}" style="margin:0">${esc(s.status)}</span>
     </div>`).join("");
 
@@ -229,32 +269,100 @@ fetch("/api/data").then(r => {
     ? d.filaments.reduce((a, b) => (b.peak < a.peak ? b : a)) : null;
   document.getElementById("filaments").innerHTML = d.filaments.map(f => `
     <tr class="${best && f.shore === best.shore ? "best" : ""}">
-      <td>Shore ${f.shore}A</td><td>${f.modulus} MPa</td>
-      <td>${f.peak} kPa</td>
+      <td>Shore ${f.shore}A</td><td>${f.modulus} MPa</td><td>${f.peak} kPa</td>
       <td class="delta">${f.delta > 0 ? "−" + f.delta + "%" : "—"}</td>
-      <td style="color:var(--muted);font-size:12.5px">${esc(f.note)}</td>
+      <td style="color:var(--muted);font-size:12px">${esc(f.note)}</td>
     </tr>`).join("");
 
   document.getElementById("figures").innerHTML = d.figures.map((f, i) => `
-    <figure class="glass enter" data-src="${esc(f.src)}" style="animation-delay:${i * 70}ms">
+    <figure class="card enter" data-zoom="${esc(f.src)}" style="animation-delay:${i * 55}ms">
       <img src="${esc(f.src)}" alt="${esc(f.title)}" loading="lazy"
-           ${f.w && f.h ? `width="${f.w}" height="${f.h}" style="aspect-ratio:${f.w}/${f.h}"` : ""}>
+        ${f.w && f.h ? `width="${f.w}" height="${f.h}" style="aspect-ratio:${f.w}/${f.h}"` : ""}>
       <figcaption><div class="ft">${esc(f.title)}</div>
         <div class="fc">${esc(f.caption)}</div></figcaption>
     </figure>`).join("");
-
-  const lb = document.getElementById("lb"), lbimg = document.getElementById("lbimg");
-  document.querySelectorAll("figure").forEach(fig =>
-    fig.addEventListener("click", () => {
-      lbimg.src = fig.dataset.src; lb.classList.add("on");
-    }));
-  lb.addEventListener("click", () => lb.classList.remove("on"));
-  addEventListener("keydown", e => { if (e.key === "Escape") lb.classList.remove("on"); });
+  zoomable();
 }).catch(e => {
   document.getElementById("metrics").innerHTML =
-    `<div class="glass err">Could not load results: ${esc(e.message)}.<br>
-     Start the server with <code>envs/core/bin/python scripts/serve_visole.py</code></div>`;
+    `<div class="card note">Could not load results: ${esc(e.message)}</div>`;
 });
+
+/* ---------- live pipeline ---------- */
+const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
+let polling = null;
+
+drop.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", () => fileInput.files[0] && upload(fileInput.files[0]));
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("over");
+}));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("over");
+}));
+drop.addEventListener("drop", e => {
+  const f = e.dataTransfer.files[0];
+  if (f) upload(f);
+});
+
+function renderSteps(job){
+  const el = document.getElementById("steps");
+  if (job.error){
+    el.innerHTML = `<div class="card note caution">Pipeline failed: ${esc(job.error)}</div>`;
+    return;
+  }
+  el.innerHTML = (job.stages || []).map((s, i) => {
+    const met = Object.entries(s.metrics || {})
+      .map(([k, v]) => `${k}=${v}`).join("  ");
+    return `
+    <div class="card step ${s.status === "running" ? "running" : ""}">
+      <div class="idx">${String(i + 1).padStart(2, "0")}</div>
+      <div>
+        <div class="st">${esc(s.title)}</div>
+        ${s.detail ? `<div class="sd">${esc(s.detail)}</div>` : ""}
+        ${met ? `<div class="sm">${esc(met)}</div>` : ""}
+        ${s.caveat ? `<div class="sc">${esc(s.caveat)}</div>` : ""}
+        ${s.preview ? `<img src="/experiments/live_jobs/${esc(job.id)}/${esc(s.preview)}"
+             alt="${esc(s.title)}" loading="lazy"
+             data-zoom="/experiments/live_jobs/${esc(job.id)}/${esc(s.preview)}">` : ""}
+      </div>
+      <span class="pill p-${esc(s.status)}" style="margin:0">${
+        s.status === "running" ? '<span class="spin"></span> running' : esc(s.status)
+      }${s.seconds != null ? " · " + s.seconds + "s" : ""}</span>
+    </div>`;
+  }).join("");
+  zoomable();
+}
+
+async function upload(file){
+  clearInterval(polling);
+  const steps = document.getElementById("steps");
+  steps.innerHTML = `<div class="card note">Uploading
+    <b>${esc(file.name)}</b> (${(file.size / 1e6).toFixed(1)} MB)…</div>`;
+  const fd = new FormData();
+  fd.append("file", file);
+  let res;
+  try {
+    res = await (await fetch("/api/upload", {method: "POST", body: fd})).json();
+  } catch (e) {
+    steps.innerHTML = `<div class="card note caution">Upload failed: ${esc(e.message)}</div>`;
+    return;
+  }
+  if (res.error){
+    steps.innerHTML = `<div class="card note caution">${esc(res.error)}</div>`;
+    return;
+  }
+  const id = res.job;
+  steps.innerHTML = `<div class="card note">Running the pipeline on
+    <b>${esc(res.filename)}</b>…</div>`;
+  polling = setInterval(async () => {
+    try {
+      const job = await (await fetch("/api/job/" + id)).json();
+      job.id = id;
+      renderSteps(job);
+      if (job.done) clearInterval(polling);
+    } catch { /* keep polling; the job thread may still be starting */ }
+  }, 700);
+}
 </script>
 </body>
 </html>
