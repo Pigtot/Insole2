@@ -186,9 +186,98 @@ def build_payload() -> dict:
     # A baked run of the full pipeline, so the page shows real per-stage output
     # immediately rather than only after someone uploads something.
     worked = _load("experiments/demo_run/demo.json")
+    fusion = _load("experiments/integrated_demo/fusion_import.json")
+
+    methods = [
+        dict(group="Machine learning", items=[
+            ("Pose estimation",
+             "torchvision Keypoint R-CNN (ResNet50-FPN, COCO, 17 keypoints), min_size=480, "
+             "run on Apple MPS at ~0.10 s/frame versus 1.14 s on CPU. The highest-scoring "
+             "detection per frame is kept: one person walks the walkway."),
+            ("Feature engineering",
+             "Ankle, knee and hip positions expressed relative to the hip midpoint and "
+             "divided by the subject's torso length in that frame. Apparent size varies "
+             "about sevenfold along the walkway, so without that normalisation the "
+             "features encode distance from the camera and the model learns the room. "
+             "Five-frame temporal context (offsets -6..+6) gives 130 features."),
+            ("Regression",
+             "Ridge, solved in closed form on standardised features with an unpenalised "
+             "intercept. alpha = 10, chosen on held-out PARTICIPANTS and confirmed to be "
+             "an interior minimum of a 10-point grid from 1e-2 to 1e7. Ridge is deliberate: "
+             "with 22 participants a high-capacity model would learn to recognise people, "
+             "and a linear probe asks whether the information is linearly accessible "
+             "without an optimiser to blame."),
+            ("Contact gating",
+             "pressure = P(contact) x magnitude, after HOPE (arXiv 2608.06192). A logistic "
+             "gate per foot multiplies a ridge magnitude head fitted on contact frames "
+             "only. A foot in swing is exactly zero across all 32 channels for about half "
+             "of every clip, and a single linear map cannot represent a hard zero."),
+            ("Evaluation",
+             "Participant-disjoint throughout. Leave-one-subject-out over 22 folds gives "
+             "+0.514 +/- 0.119 skill against a mean predictor, with 22/22 participants "
+             "beating it. Skill, not R^2: 0 means no better than predicting the average "
+             "and negative means worse."),
+            ("Deployment fit",
+             "A separate fit over all participants, stored as plain arrays (ridge weights, "
+             "logistic coefficients, scaler statistics) rather than pickled estimators, so "
+             "it cannot break on a library upgrade. Evaluation numbers still come from the "
+             "disjoint splits."),
+        ]),
+        dict(group="Calibration", items=[
+            ("Sensor geometry",
+             "The dataset ships sensor maps as SVG with no closed shapes. The 32 pad "
+             "centroids were recovered by chaining 262 open Bezier segments into closed "
+             "loops. Validated by reproducing the device's OWN centre-of-pressure at "
+             "r > 0.997 on both feet -- an independent check on the extraction, the label "
+             "assignment and the left/right mirroring at once."),
+            ("Signal baseline",
+             "Pressure channels have a non-zero unloaded offset that varies per clip "
+             "(5th percentile ranged 19..187 counts). Baseline is estimated per clip per "
+             "sensor, never as a global constant. Units stay raw counts: no calibration to "
+             "kPa exists for this hardware."),
+            ("Temporal synchronisation",
+             "The GAITRite offset convention was undocumented, so two competing hypotheses "
+             "were tested against the data. Foot 0 = left gives 14.5 ms median error -- "
+             "under one 64 Hz sample period -- against 556 ms for the alternative. A 38x "
+             "gap is a decision, not an estimate."),
+            ("Lattice stiffness",
+             "Measured by numerical compression test rather than assumed from a textbook "
+             "exponent: every solid voxel becomes a hexahedral finite element and the block "
+             "is compressed in scikit-fem. E*/Es = 0.862 rho^1.713, R^2 = 0.9971. The "
+             "solver is validated first -- a solid block returns its own modulus to "
+             "1.00000, scales exactly linearly with the base material, and is independent "
+             "of applied strain."),
+            ("Density and thickness",
+             "Relative density is voxel-counted, not taken from a formula, then that "
+             "measured curve is INVERTED to drive grading. Both estimators (voxel count and "
+             "mesh volume) are reported side by side; neither is tuned to match the other."),
+            ("Shore hardness to modulus",
+             "Gent's empirical relation converts filament grade to Young's modulus. It "
+             "carries roughly +/-30% scatter and ignores print anisotropy, so grades are "
+             "indicative -- a compression test on a printed coupon would replace it."),
+        ]),
+        dict(group="Figures (matplotlib)", items=[
+            ("Headless rendering",
+             "The Agg backend throughout, so every figure is produced by a script and can "
+             "be regenerated. No figure is drawn by hand and no number is typed into a "
+             "caption -- the dashboard reads them from the experiment JSON."),
+            ("Plantar maps",
+             "imshow with an equal aspect and the colour bar placed beside the map. Cells "
+             "outside the foot outline are masked to NaN rather than filled, so "
+             "interpolation is never mistaken for measurement. magma for pressure, viridis "
+             "for density."),
+            ("Resolution and format",
+             "Plots render at dpi 200 so they stay sharp on a Retina panel; photographic "
+             "frames are written as JPEG at quality 88 rather than PNG (129 KB for "
+             "1200x680, against 375 KB for a 640x362 PNG before)."),
+            ("3D geometry",
+             "Poly3DCollection over a decimated face list, with the box aspect set from "
+             "the real extents so the insole is not visually distorted."),
+        ]),
+    ]
 
     return dict(metrics=metrics, stages=stages, filaments=filaments, figures=figures,
-                demo=demo, worked_example=worked,
+                demo=demo, worked_example=worked, fusion=fusion, methods=methods,
                 generated_from="experiment JSON on disk")
 
 

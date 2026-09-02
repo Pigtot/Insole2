@@ -130,6 +130,21 @@ input[type=file]{display:none}
 .stage .t{font-size:14.5px;font-weight:580;letter-spacing:-.008em}
 .stage .d{font-size:12.5px;color:var(--muted);margin-top:3px}
 
+/* methods */
+.mgroup{margin-bottom:10px;padding:16px 18px}
+.mgroup h3{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--accent);font-weight:600;margin-bottom:11px}
+.mitem{padding:9px 0;border-top:1px solid var(--line-soft)}
+.mitem:first-of-type{border-top:none;padding-top:0}
+.mitem .mt{font-size:13.5px;font-weight:580}
+.mitem .mb{font-size:12.5px;color:var(--muted);margin-top:3px;max-width:78ch}
+
+/* fusion */
+.fviews{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  margin-top:10px}
+.fviews img{width:100%;height:auto;display:block;border-radius:var(--radius-sm);
+  background:#fff;outline:1px solid var(--img-outline);outline-offset:-1px;cursor:zoom-in}
+
 /* table */
 .tbl{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:540px}
@@ -206,6 +221,12 @@ code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);
 
   <h2>Pipeline</h2>
   <div id="stages"></div>
+
+  <h2>CAD handoff — Autodesk Fusion</h2>
+  <div id="fusion"></div>
+
+  <h2>Methods</h2>
+  <div id="methods"></div>
 
   <h2>Filament selection</h2>
   <div class="card tbl"><table>
@@ -292,6 +313,28 @@ fetch("/api/data").then(r => r.json()).then(d => {
         <div class="fc">${esc(f.caption)}</div></figcaption>
     </figure>`).join("");
   renderWorked(d.worked_example);
+
+  document.getElementById("methods").innerHTML = (d.methods || []).map(g => `
+    <div class="card mgroup">
+      <h3>${esc(g.group)}</h3>
+      ${g.items.map(([t, body]) => `
+        <div class="mitem"><div class="mt">${esc(t)}</div>
+          <div class="mb">${esc(body)}</div></div>`).join("")}
+    </div>`).join("");
+
+  const f = d.fusion;
+  document.getElementById("fusion").innerHTML = f ? `
+    <div class="card note">
+      <b>Connected to Autodesk Fusion ${esc(f.fusion_version)}</b> over its local MCP
+      server (${esc(f.connected_via)}), and the generated insole imported and measured
+      inside it: ${f.triangles.toLocaleString()} triangles,
+      ${f.bbox_mm[0]} × ${f.bbox_mm[1]} × ${f.bbox_mm[2]} mm.
+      This replaces the earlier manual-only handoff — Fusion can now be driven directly.
+      <div class="fviews">${(f.images || []).map(src => `
+        <img src="/experiments/integrated_demo/${esc(src)}"
+             alt="Fusion ${esc(src)}" loading="lazy"
+             data-zoom="/experiments/integrated_demo/${esc(src)}">`).join("")}</div>
+    </div>` : `<div class="card note">Fusion has not been connected yet.</div>`;
   zoomable();
 }).catch(e => {
   document.getElementById("metrics").innerHTML =

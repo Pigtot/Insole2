@@ -1,0 +1,16 @@
+{
+  "fusion_version": "2704.1.53",
+  "triangles": 168266,
+  "vertices": 224781,
+  "bbox_mm": [
+    101.6,
+    261.6,
+    15.8
+  ],
+  "images": [
+    "fusion_iso.png",
+    "fusion_top.png",
+    "fusion_front.png"
+  ],
+  "connected_via": "Fusion MCP server on 127.0.0.1:27182"
+}

@@ -53,3 +53,4 @@ experiments/integrated_demo/*.stl
 # --- live dashboard jobs: user-uploaded video and regenerable previews.
 # Never commit these -- they may contain someone's personal footage.
 experiments/live_jobs/
+experiments/integrated_demo/insole_cad.stl
