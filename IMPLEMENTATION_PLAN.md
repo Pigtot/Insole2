@@ -59,10 +59,10 @@ OOM. Never disable MPS memory limits.
 | 0 | Machine audit | **Done** — `reports/system_report.md` |
 | 1 | Repository foundation | **Done** — 69 tests passing |
 | 2 | Public data audit | **Done** — `experiments/gait_dataset_audit/` |
-| 3 | Pressure baseline | **Done** — pose kinematics reach skill +0.46 vs mean predictor |
+| 3 | Pressure baseline | **Done** — pose kinematics, **+0.514 ± 0.119** skill, 22/22 participants (leave-one-out) |
 | 4 | FOCUS inference | **Done** — 14/14 Foot3D scans, median **2.93 mm** *with given cameras*; **14.1 mm** when COLMAP estimates them (Phase D) |
 | 5 | MapAnything comparator | Optional, after 4 |
-| 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist |
+| 6 | `PressureField` contract | Partly — bins, sensor map, splits, canonical plantar frame exist; no unified dataclass yet |
 | 7 | Registration simulation | **Done** — pressure lifted to the canonical frame and onto the FIND sole surface |
 | 8 | Lattice demonstration | **PoC done** + **physics**: measured stiffness law, Winkler contact, A/B/C/D compared |
 | 9 | Integrated demo | **Done** — `scripts/run_visole_pipeline.py`: measured pressure -> printable insole STL in 2 s |
