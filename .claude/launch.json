@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "visole-dashboard",
+      "runtimeExecutable": "envs/core/bin/python",
+      "runtimeArgs": ["scripts/serve_visole.py", "--port", "8420"],
+      "port": 8420
+    }
+  ]
+}

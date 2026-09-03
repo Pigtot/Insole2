@@ -68,6 +68,7 @@ def _load(rel: str):
 def build_payload() -> dict:
     audit = _load("experiments/gait_dataset_audit/outputs/audit_stats.json")
     loso = _load("experiments/pressure_baseline/outputs/loso_pose.json")
+    ladder = _load("experiments/pressure_baseline/outputs/spatial_ladder_pose.json")
     focus = _load("experiments/focus_baseline/foot3d/results.json")
     stiff = _load("experiments/insole_physics/outputs/stiffness_calibration_r10.json")
     opt = _load("experiments/insole_physics/outputs/insole_optimum.json")
@@ -91,6 +92,15 @@ def build_payload() -> dict:
             unit=f"± {loso['skill_gated']['sd']:.3f} skill",
             sub=f"{loso['n_folds_beating_mean_gated']}/{loso['n_folds']} participants beat the baseline",
             status="measured"))
+    if ladder:
+        ml = ladder["contrasts"]["medial_lateral"]["vs_null"]
+        hf = ladder["contrasts"]["heel_forefoot"]["vs_null"]
+        metrics.append(dict(
+            label="Spatial resolution", value="heel/forefoot", unit="only",
+            sub=f"Beats its own null in {hf['folds_beating_null']}/{hf['n_folds']} folds. "
+                f"Medial–lateral does not ({ml['folds_beating_null']}/{ml['n_folds']}) — "
+                f"so the model cannot inform grading across the foot.",
+            status="measured"))
     if ch:
         metrics.append(dict(
             label="Photos → 3D foot", value=f"{med(ch):.2f}", unit="mm chamfer",
@@ -101,8 +111,9 @@ def build_payload() -> dict:
         metrics.append(dict(
             label="Lattice stiffness", value=_superscript(stiff["fit"]["n"]),
             unit=f"× {stiff['fit']['C']:.3f} · E*/Es",
-            sub=f"R² = {stiff['fit']['r_squared']:.4f} · measured by FEA, not assumed",
-            status="measured"))
+            sub=f"R² = {stiff['fit']['r_squared']:.4f} · numerical compression test, "
+                f"not a physical one — nothing was compressed",
+            status="simulated"))
     if opt and fil:
         o = opt["optimum"]
         best = fil["overall_best"]
@@ -140,18 +151,19 @@ def build_payload() -> dict:
                     "the sole is never visible."),
         dict(n=2, title="Video → plantar loading", status="measured",
              detail="Limb kinematics, not appearance. Coarse motion features scored "
-                    "+0.009; pose keypoints reached +0.514."),
+                    "+0.009; pose keypoints reached +0.514 — but only the heel↔toe "
+                    "axis survives a null-control test."),
         dict(n=3, title="Photos → 3D foot", status="measured",
              detail=f"FOCUS on Apple Silicon, {med(ch):.2f} mm median chamfer over "
                     f"{len(ch)} scans." if ch else "FOCUS on Apple Silicon."),
         dict(n=4, title="Canonical plantar frame", status="measured",
              detail="Both feet in one frame. The two insoles number their sensors "
                     "differently — no index is shared."),
-        dict(n=5, title="Lattice stiffness", status="measured",
+        dict(n=5, title="Lattice stiffness", status="simulated",
              detail=(f"E*/Es = {stiff['fit']['C']:.3f} · ρ{_sup(stiff['fit']['n'])}, "
-                     f"R² = {stiff['fit']['r_squared']:.4f} — a numerical compression "
-                     f"test, not a textbook exponent."
-                     if stiff else "Measured by FEA.")),
+                     f"R² = {stiff['fit']['r_squared']:.4f} — a *numerical* compression "
+                     f"test, so simulated, not measured. Nothing was compressed."
+                     if stiff else "Derived by FEA, not physically measured.")),
         dict(n=6, title="Contact model → optimum", status="simulated",
              detail="Winkler foundation with the real plantar profile. Softening "
                     "under high pressure lowers peak pressure."),
@@ -406,8 +418,19 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def log_message(self, fmt, *args):
-        if "/api/" in (args[0] if args else ""):
+        """Quiet request log: API calls only.
+
+        `log_error` routes here too and passes an **HTTPStatus**, not a string,
+        so any match has to coerce first -- `"/api/" in HTTPStatus.NOT_FOUND`
+        raises TypeError from inside the error path and kills the connection.
+        A missing favicon was enough to trigger it.
+        """
+        if any("/api/" in str(a) for a in args):
             super().log_message(fmt, *args)
+
+    def log_error(self, fmt, *args):
+        """Errors are never filtered -- swallowing them is what hid the above."""
+        super().log_message(fmt, *args)
 
 
 def main() -> int:
