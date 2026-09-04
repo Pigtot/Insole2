@@ -1,24 +1,24 @@
 {
-  "source": "Insole-GAITRite dataset, Zenodo 10.5281/zenodo.19662017 (CC-BY-4.0)",
-  "clip": "P9/NP/1",
-  "video": "1920x1088, 60.0 fps, 3.5 s",
-  "in_distribution": true,
-  "note": "A dataset clip, so the loading model is operating on the camera and setup it was trained for. On other footage the same stages run but the loading stage is extrapolating.",
-  "stl_mb_generated_then_discarded": 3.8,
+  "source": "Freely licensed gait video for demonstrating the pipeline on outside footage (CC-BY-2.0)",
+  "clip": "treadmill_walk.mp4",
+  "video": "720x480, 30.0 fps, 10.0 s",
+  "in_distribution": false,
+  "note": "Video the loading model was never trained on. Pose detection, the canonical frame, the density mapping, the contact solve and the geometry are honest on any footage -- they are deterministic given their input. The loading stage is extrapolating: treat its output as illustrative of the pipeline, not as a measurement of the person in the video.",
+  "stl_mb_generated_then_discarded": 5.3,
   "stages": [
     {
       "key": "video",
       "title": "Video",
       "status": "done",
-      "detail": "1920\u00d71088, 60.0 fps, 3.5 s",
+      "detail": "720\u00d7480, 30.0 fps, 10.0 s",
       "metrics": {
-        "frames": 212,
-        "fps": 60.0
+        "frames": 300,
+        "fps": 29.97
       },
       "preview": "00_video.jpg",
-      "preview_w": 1200,
-      "preview_h": 680,
-      "seconds": 0.2,
+      "preview_w": 720,
+      "preview_h": 480,
+      "seconds": 0.1,
       "caveat": null
     },
     {
@@ -32,8 +32,8 @@
       },
       "preview": "01_pose.jpg",
       "preview_w": 924,
-      "preview_h": 523,
-      "seconds": 7.6,
+      "preview_h": 616,
+      "seconds": 6.9,
       "caveat": null
     },
     {
@@ -55,10 +55,10 @@
       "key": "pressure",
       "title": "Predicted plantar loading",
       "status": "done",
-      "detail": "Peak total load at frame 2. Units are raw sensor counts, not kPa.",
+      "detail": "Peak total load at frame 1. Units are raw sensor counts, not kPa.",
       "metrics": {
-        "peak_frame": 2,
-        "peak_counts": 52833.8
+        "peak_frame": 1,
+        "peak_counts": 83179.4
       },
       "preview": "03_pressure.png",
       "preview_w": 1364,
@@ -86,7 +86,7 @@
       "status": "done",
       "detail": "Soften mapping: higher predicted pressure \u2192 lower lattice density.",
       "metrics": {
-        "rho_min": 0.2,
+        "rho_min": 0.266,
         "rho_max": 0.55
       },
       "preview": "05_density.png",
@@ -99,10 +99,10 @@
       "key": "contact",
       "title": "Contact simulation",
       "status": "done",
-      "detail": "Shore 70A, 14 mm. Peak 171 kPa over 89 cm\u00b2. Accepted.",
+      "detail": "Shore 70A, 14 mm. Peak 204 kPa over 70 cm\u00b2. Accepted.",
       "metrics": {
-        "peak_kpa": 171.3,
-        "contact_cm2": 89.0,
+        "peak_kpa": 203.9,
+        "contact_cm2": 69.6,
         "bottomed_pct": 0.0
       },
       "preview": "06_contact.png",
@@ -115,17 +115,18 @@
       "key": "geometry",
       "title": "Graded insole",
       "status": "done",
-      "detail": "76,380 faces, watertight=True, connected=True. STL ready to slice.",
+      "detail": "106,308 faces, watertight=True, connected=True. STL ready to slice.",
       "metrics": {
-        "faces": 76380,
-        "volume_cm3": 78.7,
+        "faces": 106308,
+        "volume_cm3": 106.6,
         "watertight": true
       },
       "preview": "07_geometry.png",
       "preview_w": 1884,
       "preview_h": 659,
-      "seconds": 0.9,
+      "seconds": 0.8,
       "caveat": null
     }
-  ]
+  ],
+  "attribution": "ATTRIBUTION REQUIRED (CC BY 2.0). treadmill_walk.ogv is Additional file 1 of Yoon J, Park H-S, Damiano DL, 'A novel walking speed estimation scheme and its application to treadmill control for gait rehabilitation', Journal of NeuroEngineering and Rehabilitation 9:62 (2012), doi:10.1186/1743-0003-9-62, via Wikimedia Commons.\nTheora/.ogv at 720x480, 29.97 fps, 45 s. download_data.py transcodes a 10 s window to H.264 treadmill_walk.mp4, which is what the pipeline reads.\nOUT OF DISTRIBUTION on purpose. The loading model was trained on a fixed room camera with participants walking toward or away from it; this is a sagittal treadmill view of a different person. The camera also crops the head, so the torso-length normalisation the pose features rely on is degraded."
 }

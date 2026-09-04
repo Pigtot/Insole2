@@ -2,6 +2,11 @@
 """Does the pose model have real spatial resolution, or just total-load tracking?
 
     envs/core/bin/python scripts/evaluate_spatial_ladder.py --features pose
+    envs/core/bin/python scripts/evaluate_spatial_ladder.py --plot-only
+
+The second form redraws the figure from the stored JSON. Recomputing the ladder
+needs the dataset and the pose cache; redrawing needs neither, so the figure the
+README embeds stays cheap to regenerate.
 
 Milestone 3 reports +0.514 skill on all 64 channels. That number cannot
 distinguish two very different models:
@@ -146,6 +151,122 @@ def score_contrast(y_true, y_pred, y_train, a, b) -> dict:
     }
 
 
+#: Drawn in this order, left to right, coarsest anatomical axis first.
+LADDER = [("left_right", "left vs right\nwhich foot is loaded"),
+          ("heel_forefoot", "heel vs forefoot\nalong the foot"),
+          ("medial_lateral", "medial vs lateral\nacross the foot")]
+
+PASS_COLOUR = "#1a7f37"
+FAIL_COLOUR = "#b3261e"
+NULL_COLOUR = "#9aa0a6"
+
+
+def plot(summary: dict, out: Path) -> Path:
+    """Draw the ladder: per-fold share skill against each fold's own null band.
+
+    Two panels because the result needs both. The left one is the test -- does
+    the contrast beat controls computed on the same participant. The right one
+    is why the test was needed: on the absolute column medial-lateral looks
+    exactly like heel-forefoot, and only dividing total load out separates them.
+    """
+    import matplotlib
+    import matplotlib.pyplot as plt
+
+    matplotlib.use("Agg")
+
+    folds = summary["folds"]
+    contrasts = summary["contrasts"]
+    nulls = [k for k in folds[0] if k.startswith("null_random")]
+
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(13, 6.2), width_ratios=[1.25, 1],
+                                 facecolor="white")
+    rng = np.random.default_rng(0)
+
+    # --- left: per-fold share skill, paired against the same fold's null band
+    for i, (key, label) in enumerate(LADDER):
+        vals = np.array([f[key]["skill_share"] for f in folds])
+        null = np.array([np.nanmean([f[n]["skill_share"] for n in nulls])
+                         for f in folds])
+        wins = contrasts[key]["vs_null"]["folds_beating_null"]
+        n = contrasts[key]["vs_null"]["n_folds"]
+        colour = PASS_COLOUR if wins > n / 2 else FAIL_COLOUR
+
+        # The null band is per fold, so show its spread, not a single line.
+        ax.add_patch(plt.Rectangle((i - 0.34, np.percentile(null, 10)), 0.68,
+                                   np.percentile(null, 90) - np.percentile(null, 10),
+                                   facecolor=NULL_COLOUR, alpha=0.22, zorder=1,
+                                   edgecolor="none"))
+        ax.hlines(np.median(null), i - 0.34, i + 0.34, color=NULL_COLOUR,
+                  lw=1.4, zorder=2)
+        ax.scatter(i + rng.uniform(-0.19, 0.19, vals.size), vals, s=34,
+                   color=colour, alpha=0.8, zorder=3, edgecolor="white", lw=0.6)
+        ax.hlines(np.median(vals), i - 0.28, i + 0.28, color=colour, lw=2.6,
+                  zorder=4)
+        ax.text(i, 1.05, f"{wins}/{n}", ha="center", fontsize=15,
+                fontweight="bold", color=colour)
+        ax.text(i, 1.00, "folds beat their own null", ha="center", fontsize=8,
+                color=colour)
+
+    ax.axhline(0, color="#333333", lw=0.9)
+    ax.set_xticks(range(len(LADDER)))
+    ax.set_xticklabels([lab for _, lab in LADDER], fontsize=10)
+    ax.set_ylim(-0.18, 1.14)
+    ax.set_ylabel("share skill vs a mean-share predictor\n(one point per held-out participant)")
+    ax.set_title("Which spatial axes does the model actually resolve?",
+                 fontsize=13, loc="left")
+    ax.grid(axis="y", alpha=0.25)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    ax.text(0.02, 0.02, "grey band: 10-90% of the arbitrary 16/16 sensor\n"
+            "partitions, computed on the same participants",
+            transform=ax.transAxes, fontsize=8, color=NULL_COLOUR, va="bottom")
+
+    # --- right: the trap. Absolute looks the same; share does not.
+    keys = [k for k, _ in LADDER] + ["null_control"]
+    names = ["left/right", "heel/forefoot", "medial/lateral", "arbitrary\n(control)"]
+    x = np.arange(len(keys))
+    absol = [contrasts[k]["absolute"]["mean"] for k in keys]
+    abs_sd = [contrasts[k]["absolute"]["sd"] for k in keys]
+    share = [contrasts[k]["share"]["mean"] for k in keys]
+    sh_sd = [contrasts[k]["share"]["sd"] for k in keys]
+
+    bx.bar(x - 0.2, absol, 0.38, yerr=abs_sd, capsize=3, label="absolute load",
+           color="#c7c9cc", edgecolor="#8b8e93")
+    bx.bar(x + 0.2, share, 0.38, yerr=sh_sd, capsize=3, label="share of load",
+           color=["#2f6f4e", "#2f6f4e", FAIL_COLOUR, NULL_COLOUR],
+           edgecolor="#3c3c3c")
+    bx.axhline(0, color="#333333", lw=0.9)
+    bx.set_xticks(x)
+    bx.set_xticklabels(names, fontsize=9.5)
+    bx.set_ylabel("skill vs the matching mean predictor")
+    bx.set_title("Why the absolute column cannot be trusted", fontsize=13, loc="left")
+    bx.legend(frameon=False, fontsize=9, loc="upper right")
+    bx.grid(axis="y", alpha=0.25)
+    bx.set_axisbelow(True)
+    for side in ("top", "right"):
+        bx.spines[side].set_visible(False)
+    bx.annotate("same absolute skill\nas heel/forefoot", xy=(2 - 0.2, absol[2]),
+                xytext=(2.35, absol[2] + 0.30), fontsize=8.5, color="#555555",
+                ha="center",
+                arrowprops=dict(arrowstyle="->", color="#888888", lw=0.9))
+    bx.annotate("but the share\ncollapses to the control", xy=(2 + 0.2, share[2]),
+                xytext=(1.15, share[2] - 0.20), fontsize=8.5, color=FAIL_COLOUR,
+                ha="center",
+                arrowprops=dict(arrowstyle="->", color=FAIL_COLOUR, lw=0.9))
+
+    fig.suptitle("The +0.514 whole-foot skill is not all spatial resolution",
+                 fontsize=15, x=0.02, ha="left", y=0.985)
+    fig.text(0.02, 0.925,
+             f"Leave-one-subject-out over {summary['n_folds']} participants, "
+             f"{summary['n_samples_total']:,} frames. {summary['units']}.",
+             fontsize=9, color="#555555")
+    fig.tight_layout(rect=(0, 0, 1, 0.90))
+    fig.savefig(out, dpi=150, facecolor="white")
+    plt.close(fig)
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -157,7 +278,18 @@ def main() -> int:
     ap.add_argument("--null-repeats", type=int, default=10,
                     help="arbitrary partitions pooled into the control band")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--plot-only", action="store_true",
+                    help="redraw the figure from the stored JSON; compute nothing")
     args = ap.parse_args()
+
+    if args.plot_only:
+        path = OUT / f"spatial_ladder_{args.features}.json"
+        if not path.exists():
+            print(f"no {path.relative_to(REPO)} -- run without --plot-only first")
+            return 1
+        fig = plot(json.loads(path.read_text()), path.with_suffix(".png"))
+        print(f"wrote {fig.relative_to(REPO)}")
+        return 0
 
     contrasts = build_contrasts(args.seed, args.null_repeats)
     named = [n for n in contrasts if not n.startswith(NULL_PREFIX)]
@@ -266,7 +398,9 @@ def main() -> int:
     print("\nA contrast shows spatial resolution only if its *share* skill beats the\n"
           "controls computed on the same participant. Losing to an arbitrary sensor\n"
           "partition means the model is not resolving that anatomical axis.")
+    fig = plot(summary, path.with_suffix(".png"))
     print(f"\nwrote {path.relative_to(REPO)}")
+    print(f"wrote {fig.relative_to(REPO)}")
     return 0
 
 

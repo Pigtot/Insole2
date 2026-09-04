@@ -42,6 +42,7 @@ def load(path):
 def collect() -> list[dict]:
     aud = load("experiments/gait_dataset_audit/outputs/audit_stats.json")
     loso = load("experiments/pressure_baseline/outputs/loso_pose.json")
+    lad = load("experiments/pressure_baseline/outputs/spatial_ladder_pose.json")
     f3d = load("experiments/focus_baseline/foot3d/results.json")
     cal = load("experiments/insole_physics/outputs/stiffness_calibration_r10.json")
     opt = load("experiments/insole_physics/outputs/insole_optimum.json")
@@ -67,6 +68,24 @@ def collect() -> list[dict]:
                    f"{loso['n_folds_beating_mean_gated']}/{loso['n_folds']} participants beat it "
                    "(leave-one-out)",
                    f"correct loaded foot {100*loso['foot_dominance_acc']['mean']:.0f}% of frames"],
+            status="measured"))
+    if lad:
+        # The whole-foot skill above cannot separate "knows where the load is"
+        # from "knows how much load there is". This stage is that separation,
+        # and it is where the chain narrows.
+        c = lad["contrasts"]
+
+        def _axis(key, label):
+            v = c[key]["vs_null"]
+            mark = "yes" if v["folds_beating_null"] > v["n_folds"] / 2 else "NO"
+            return (f"{label}: {mark} "
+                    f"({v['folds_beating_null']}/{v['n_folds']} folds beat own null)")
+
+        stages.append(dict(
+            title="2b. How much of that is spatial?",
+            lines=[_axis("left_right", "which foot"),
+                   _axis("heel_forefoot", "heel vs forefoot"),
+                   _axis("medial_lateral", "medial vs lateral")],
             status="measured"))
     if ch:
         line3 = (f"cameras estimated: {np.mean(syn_ch):.1f} mm (~{np.mean(syn_ch)/np.median(ch):.0f}x worse)"
@@ -114,10 +133,10 @@ def main() -> int:
 
     n = len(stages)
     row_h, gap = 1.10, 0.30
-    fig_h = 0.75 + n * (row_h + gap)
+    fig_h = 1.05 + n * (row_h + gap)
     fig, ax = plt.subplots(figsize=(14.5, fig_h))
     ax.set_xlim(0, 10)
-    ax.set_ylim(0, n * (row_h + gap) + 0.22)
+    ax.set_ylim(-0.55, n * (row_h + gap) + 0.22)  # -0.55: a strip for the legend
     ax.axis("off")
 
     top = n * (row_h + gap) + 0.18
@@ -146,8 +165,9 @@ def main() -> int:
                for k, v in STATUS_COLOURS.items()]
     ax.legend(handles=handles, loc="upper center", ncol=3, frameon=False,
               fontsize=11, bbox_to_anchor=(0.5, 0.055))
+    fig.subplots_adjust(top=0.945, bottom=0.015, left=0.01, right=0.99)
     fig.suptitle("Visole pipeline: what is measured, what is simulated, "
-                 "what is not yet validated", fontsize=15, y=0.995)
+                 "what is not yet validated", fontsize=15, y=0.985)
 
     out = REPO / "experiments" / "pipeline_summary.png"
     fig.savefig(out, dpi=125, bbox_inches="tight")

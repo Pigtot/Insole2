@@ -107,7 +107,46 @@ INSOLE_GAITRITE = DatasetSpec(
     ),
 )
 
-REGISTRY: dict[str, DatasetSpec] = {d.name: d for d in (INSOLE_GAITRITE,)}
+_COMMONS = "https://upload.wikimedia.org/wikipedia/commons"
+
+SAMPLE_VIDEOS = DatasetSpec(
+    name="sample_videos",
+    title="Freely licensed gait video for demonstrating the pipeline on outside footage",
+    doi=None,
+    source_url="https://commons.wikimedia.org/wiki/Category:Gait",
+    licence="CC-BY-2.0",
+    dest="raw/sample_videos",
+    verified_on="2026-09-03",
+    purpose=(
+        "A walking clip that is NOT from the training dataset, so the chain can be "
+        "shown running end to end on footage anyone can fetch. Stages 1-3 and 5-8 "
+        "are honest on any video; the loading stage is extrapolating and says so."
+    ),
+    files=(
+        RemoteFile(
+            key="treadmill_walk.ogv",
+            url=(f"{_COMMONS}/1/1d/A-novel-walking-speed-estimation-scheme-and-its-"
+                 "application-to-treadmill-control-for-gait-1743-0003-9-62-S1.ogv"),
+            size_bytes=3_798_720,
+            md5="a5913d51284fb8054d42062c7ecd5806",
+        ),
+    ),
+    notes=(
+        "ATTRIBUTION REQUIRED (CC BY 2.0). treadmill_walk.ogv is Additional file 1 of "
+        "Yoon J, Park H-S, Damiano DL, 'A novel walking speed estimation scheme and its "
+        "application to treadmill control for gait rehabilitation', Journal of "
+        "NeuroEngineering and Rehabilitation 9:62 (2012), doi:10.1186/1743-0003-9-62, "
+        "via Wikimedia Commons.",
+        "Theora/.ogv at 720x480, 29.97 fps, 45 s. download_data.py transcodes a 10 s "
+        "window to H.264 treadmill_walk.mp4, which is what the pipeline reads.",
+        "OUT OF DISTRIBUTION on purpose. The loading model was trained on a fixed room "
+        "camera with participants walking toward or away from it; this is a sagittal "
+        "treadmill view of a different person. The camera also crops the head, so the "
+        "torso-length normalisation the pose features rely on is degraded.",
+    ),
+)
+
+REGISTRY: dict[str, DatasetSpec] = {d.name: d for d in (INSOLE_GAITRITE, SAMPLE_VIDEOS)}
 
 
 def get(name: str) -> DatasetSpec:

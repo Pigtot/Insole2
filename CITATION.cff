@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Visole: RGB video to a pressure-graded lattice insole"
+abstract: >-
+  An end-to-end computational chain from ordinary walking video to a
+  3D-printable, locally graded lattice insole, together with the measurements of
+  how far each link holds. Includes a leave-one-subject-out evaluation of
+  video-predicted plantar loading and a spatial-resolution ladder showing that
+  the medial-lateral axis is not resolved.
+type: software
+authors:
+  - alias: Pigtot
+license: MIT
+repository-code: "https://github.com/"
+keywords:
+  - biomechanics
+  - plantar pressure
+  - gait analysis
+  - pose estimation
+  - lattice structures
+  - 3D printing
+  - insole
+references:
+  - type: data
+    title: >-
+      An Open Insole-Based Plantar Pressure Dataset at Varying Cadences
+      Compared Against GAITRite
+    doi: 10.5281/zenodo.19662017
+  - type: article
+    title: >-
+      A novel walking speed estimation scheme and its application to treadmill
+      control for gait rehabilitation
+    doi: 10.1186/1743-0003-9-62
+    journal: Journal of NeuroEngineering and Rehabilitation
+    year: 2012
+    authors:
+      - family-names: Yoon
+        given-names: Jungwon
+      - family-names: Park
+        given-names: Hyung-Soon
+      - family-names: Damiano
+        given-names: Diane L.
